@@ -314,18 +314,18 @@ const LoginPage = () => {
             </div>
 
             {/* Demo Credentials */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <h4 className="text-sm font-semibold text-blue-900 mb-2">Demo Credentials:</h4>
               <div className="text-xs text-blue-700 space-y-1">
                 <p><span className="font-medium">Admin:</span> admin@digious.com / admin123</p>
                 <p><span className="font-medium">HR:</span> hr@digious.com / hr123</p>
                 <p><span className="font-medium">Employee:</span> employee@digious.com / emp123</p>
               </div>
-            </div>
+            </div> */}
           </form>
 
           {/* Sign Up Link */}
-          <div className="mt-8 text-center">
+          {/* <div className="mt-8 text-center">
             <p className="text-gray-600 text-sm">
               Don't have an account?{' '}
               <Link 
@@ -338,7 +338,7 @@ const LoginPage = () => {
                 </svg>
               </Link>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
 
