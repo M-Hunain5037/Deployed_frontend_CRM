@@ -143,7 +143,7 @@ const LoginPage = () => {
             console.log('🔍 Check-in payload:', checkInPayload);
             console.log('📦 Backend response data:', data.data);
             
-            const checkInResponse = await fetch('/api/v1/attendance/check-in', {
+            const checkInResponse = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/check-in', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

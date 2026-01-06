@@ -92,7 +92,7 @@ const ChangePasswordPage = () => {
 
       const authToken = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-      const response = await fetch('/api/v1/auth/password/update', {
+      const response = await fetch('https://plustaff-backend.onrender.com//api/v1/auth/password/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

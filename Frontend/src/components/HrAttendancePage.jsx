@@ -3712,7 +3712,7 @@ export function HrAttendancePage() {
     // Fetch employees from database
     const fetchEmployees = async () => {
       try {
-        const response = await fetch('/api/v1/employees');
+        const response = await fetch('https://plustaff-backend.onrender.com/api/v1/employees');
         const data = await response.json();
         
         // Handle both direct array response and object with data property
@@ -3748,12 +3748,12 @@ export function HrAttendancePage() {
         
         // Fetch all historical attendance data (includes real check-ins)
         // Request large limit to ensure we get all historical records
-        const historyResponse = await fetch('/api/v1/attendance/all?limit=1000');
+        const historyResponse = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/all?limit=1000');
         const historyData = await historyResponse.json();
         const historicalList = Array.isArray(historyData) ? historyData : (historyData.data || historyData.attendance || []);
         
         // Fetch today's attendance data WITH absent records (so we see all employees for today)
-        const todayResponse = await fetch(`/api/v1/attendance/all-with-absent?date=${todayDate}`);
+        const todayResponse = await fetch(`https://plustaff-backend.onrender.com/api/v1/attendance/all-with-absent?date=${todayDate}`);
         const todayData = await todayResponse.json();
         const todayList = Array.isArray(todayData) ? todayData : (todayData.data || []);
         
@@ -3822,7 +3822,7 @@ export function HrAttendancePage() {
     // Fetch rules from database
     const fetchRules = async () => {
       try {
-        const response = await fetch('/api/v1/rules/break-rules');
+        const response = await fetch('https://plustaff-backend.onrender.com/api/v1/rules/break-rules');
         const rules = await response.json();
         
         // Handle both direct array response and object with data property
@@ -3857,7 +3857,7 @@ export function HrAttendancePage() {
     // Fetch breaks from database
     const fetchBreaks = async () => {
       try {
-        const response = await fetch('/api/v1/attendance/breaks');
+        const response = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/breaks');
         const breaksData = await response.json();
         
         // Handle both direct array response and object with data property
@@ -3919,7 +3919,7 @@ export function HrAttendancePage() {
         
         // For historical dates with no data, fetch absent records
         console.log(`🔄 Fetching absent records for historical date: ${selectedDate}`);
-        const response = await fetch(`/api/v1/attendance/all-with-absent?date=${selectedDate}`);
+        const response = await fetch(`https://plustaff-backend.onrender.com/api/v1/attendance/all-with-absent?date=${selectedDate}`);
         const data = await response.json();
         const dateRecords = Array.isArray(data) ? data : (data.data || []);
         
