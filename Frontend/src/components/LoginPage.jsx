@@ -59,7 +59,7 @@ const LoginPage = () => {
         const deviceInfo = await prepareLoginDeviceInfo();
 
         // Send login request to backend
-        const response = await fetch('/api/v1/auth/login', {
+        const response = await fetch('https://plustaff-backend.onrender.com/api/v1/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
