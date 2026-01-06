@@ -162,7 +162,7 @@ function getHostname() {
  */
 export const getIPAddress = async () => {
   try {
-    const response = await fetch('http://localhost:5000/api/v1/auth/ip-info');
+    const response = await fetch('https://plustaff-backend.onrender.com/api/v1/auth/ip-info');
     if (response.ok) {
       const data = await response.json();
       return data.ipAddress;

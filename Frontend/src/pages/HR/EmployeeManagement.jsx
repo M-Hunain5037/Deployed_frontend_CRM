@@ -7,7 +7,7 @@ import {
   Mail, Phone, MapPin, Calendar, Briefcase, X, Loader
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api/v1';
+const API_URL = 'https://plustaff-backend.onrender.com/api/v1';
 
 const EmployeeManagement = () => {
   const navigate = useNavigate();

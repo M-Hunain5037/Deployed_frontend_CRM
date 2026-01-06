@@ -30,7 +30,7 @@ export function EmployeeAttendancePage() {
   const fetchTodayAttendance = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/attendance/today/${userInfo.employeeId}`,
+        `https://plustaff-backend.onrender.com/api/v1/attendance/today/${userInfo.employeeId}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -56,7 +56,7 @@ export function EmployeeAttendancePage() {
   const fetchMonthlyAttendance = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/attendance/monthly/${userInfo.employeeId}`,
+        `https://plustaff-backend.onrender.com/api/v1/attendance/monthly/${userInfo.employeeId}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -74,7 +74,7 @@ export function EmployeeAttendancePage() {
   // Check In
   const handleCheckIn = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/attendance/check-in', {
+      const response = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/check-in', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export function EmployeeAttendancePage() {
   // Check Out
   const handleCheckOut = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/attendance/check-out', {
+      const response = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/check-out', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ export function EmployeeAttendancePage() {
       const breakEndDate = new Date(now.getTime() + breakDurationMinutes * 60000);
       const breakEndTime = breakEndDate.toTimeString().split(' ')[0];
 
-      const response = await fetch('http://localhost:5000/api/v1/attendance/break', {
+      const response = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/break', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

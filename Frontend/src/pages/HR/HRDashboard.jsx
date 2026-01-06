@@ -27,7 +27,7 @@ const HRDashboard = () => {
       
       // Fetch total employees
       console.log('📥 Fetching employees...');
-      const employeesResponse = await fetch('http://localhost:5000/api/v1/onboarding/employees', {
+      const employeesResponse = await fetch('https://plustaff-backend.onrender.com/api/v1/onboarding/employees', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       const employeesData = await employeesResponse.json();
@@ -37,7 +37,7 @@ const HRDashboard = () => {
 
       // Fetch today's attendance records
       console.log('📥 Fetching attendance...');
-      const attendanceResponse = await fetch('http://localhost:5000/api/v1/attendance/all', {
+      const attendanceResponse = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/all', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       const attendanceDataRaw = await attendanceResponse.json();

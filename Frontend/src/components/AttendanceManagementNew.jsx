@@ -52,7 +52,7 @@ const AttendanceManagement = () => {
     const fetchAttendance = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5000/api/v1/attendance/all?limit=1000');
+        const response = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/all?limit=1000');
         const result = await response.json();
         
         if (result.success && result.data) {

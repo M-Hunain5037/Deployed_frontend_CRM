@@ -1586,7 +1586,7 @@ export function AdvancedAttendanceManagement() {
       try {
         setLoading(true);
         const API_VERSION = process.env.REACT_APP_API_VERSION || 'v1';
-        const response = await fetch(`http://localhost:5000/api/${API_VERSION}/attendance/all`);
+        const response = await fetch(`https://plustaff-backend.onrender.com/api/${API_VERSION}/attendance/all`);
         const data = await response.json();
         
         if (data.success) {
