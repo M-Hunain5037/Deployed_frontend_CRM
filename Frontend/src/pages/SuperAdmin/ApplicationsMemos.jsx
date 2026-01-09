@@ -5,6 +5,7 @@ import {
   Download, Filter, User, Mail, Calendar, MessageSquare,
   AlertCircle, CheckCircle, XCircle, Edit, Trash2, Users
 } from 'lucide-react';
+import { getPakistanDateString } from '../../utils/timezone';
 
 const AdminApplicationsMemos = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -217,7 +218,7 @@ const AdminApplicationsMemos = () => {
   const handleApproveApplication = (id) => {
     setApplications(applications.map(app => 
       app.id === id 
-        ? {...app, status: 'Approved', approvedBy: 'Admin', approvedDate: new Date().toISOString().split('T')[0]}
+        ? {...app, status: 'Approved', approvedBy: 'Admin', approvedDate: getPakistanDateString()}
         : app
     ));
   };
@@ -227,7 +228,7 @@ const AdminApplicationsMemos = () => {
     if (reason) {
       setApplications(applications.map(app => 
         app.id === id 
-          ? {...app, status: 'Rejected', rejectedBy: 'Admin', rejectedDate: new Date().toISOString().split('T')[0], notes: reason}
+          ? {...app, status: 'Rejected', rejectedBy: 'Admin', rejectedDate: getPakistanDateString(), notes: reason}
           : app
       ));
     }
@@ -238,7 +239,7 @@ const AdminApplicationsMemos = () => {
       id: memos.length + 1,
       ...memoFormData,
       issuedBy: 'Admin Department',
-      issuedDate: new Date().toISOString().split('T')[0],
+      issuedDate: getPakistanDateString(),
       recipients: memoFormData.department === 'All' ? 248 : 68,
       status: 'Active'
     };

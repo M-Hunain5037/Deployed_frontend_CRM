@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getPakistanNow } from '../utils/timezone';
 
 /**
  * Hook to handle auto-logout after user inactivity
@@ -11,14 +12,14 @@ export function useInactivityLogout(timeoutMinutes = 15) {
   const navigate = useNavigate();
   const timeoutRef = useRef(null);
   const warningTimeoutRef = useRef(null);
-  const lastActivityRef = useRef(Date.now());
+  const lastActivityRef = useRef(getPakistanNow());
   const isLoggedInRef = useRef(!!localStorage.getItem('token'));
 
   // Reset inactivity timer
   const resetTimer = useCallback(() => {
     if (!isLoggedInRef.current) return;
 
-    lastActivityRef.current = Date.now();
+    lastActivityRef.current = getPakistanNow();
 
     // Clear existing timers
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -119,7 +120,7 @@ export function useInactivityLogout(timeoutMinutes = 15) {
     handleLogout,
     getTimeUntilLogout: () => {
       if (!isLoggedInRef.current) return null;
-      const elapsed = Date.now() - lastActivityRef.current;
+      const elapsed = getPakistanNow() - lastActivityRef.current;
       const remaining = Math.max(0, timeoutMinutes * 60 * 1000 - elapsed);
       return Math.ceil(remaining / 1000); // Return seconds
     }

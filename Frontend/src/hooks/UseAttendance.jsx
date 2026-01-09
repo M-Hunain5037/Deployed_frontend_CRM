@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getPakistanDate, getPakistanDateString, convertToPakistanTime } from '../utils/timezone';
 
 export function useAttendance() {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -23,12 +24,12 @@ export function useAttendance() {
     
     if (savedSystemAttendance) {
       const parsed = JSON.parse(savedSystemAttendance);
-      // Convert string dates back to Date objects
+      // Convert string dates back to Date objects in Pakistan timezone
       setSystemAttendance({
         ...parsed,
-        checkInTime: parsed.checkInTime ? new Date(parsed.checkInTime) : null,
-        checkOutTime: parsed.checkOutTime ? new Date(parsed.checkOutTime) : null,
-        lastUpdate: parsed.lastUpdate ? new Date(parsed.lastUpdate) : null
+        checkInTime: parsed.checkInTime ? convertToPakistanTime(new Date(parsed.checkInTime)) : null,
+        checkOutTime: parsed.checkOutTime ? convertToPakistanTime(new Date(parsed.checkOutTime)) : null,
+        lastUpdate: parsed.lastUpdate ? convertToPakistanTime(new Date(parsed.lastUpdate)) : null
       });
     }
   }, []);
@@ -44,8 +45,8 @@ export function useAttendance() {
 
   // System Check-in
   const handleSystemCheckIn = async () => {
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const now = getPakistanDate(); // Use Pakistan timezone
+    const today = getPakistanDateString();
     
     const isLate = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 30);
     const status = isLate ? 'late' : 'present';
@@ -108,8 +109,8 @@ export function useAttendance() {
 
   // System Check-out
   const handleSystemCheckOut = async () => {
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const now = getPakistanDate(); // Use Pakistan timezone
+    const today = getPakistanDateString();
     
     // Calculate final working time
     let finalWorkingTime = systemAttendance.totalWorkingTime;
@@ -161,7 +162,7 @@ export function useAttendance() {
   // Update working time (for real-time tracking)
   const updateWorkingTime = () => {
     if (systemAttendance.checkedIn && systemAttendance.lastUpdate && !systemAttendance.isOnBreak) {
-      const now = new Date();
+      const now = getPakistanDate();
       const timeDiff = (now - systemAttendance.lastUpdate) / (1000 * 60);
       
       setSystemAttendance(prev => ({
@@ -177,13 +178,13 @@ export function useAttendance() {
     setSystemAttendance(prev => ({
       ...prev,
       isOnBreak,
-      lastUpdate: isOnBreak ? null : new Date()
+      lastUpdate: isOnBreak ? null : getPakistanDate()
     }));
   };
 
   // Get today's status
   const getTodayStatus = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getPakistanDateString();
     return attendanceData.find(record => record.date === today) || {
       date: today,
       status: 'pending',
