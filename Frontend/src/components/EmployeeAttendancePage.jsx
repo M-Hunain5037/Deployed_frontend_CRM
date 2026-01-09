@@ -1,4 +1,3 @@
-// EmployeeAttendancePage.jsx
 import { useState, useEffect } from 'react';
 import { endpoints } from '../config/api';
 import {
