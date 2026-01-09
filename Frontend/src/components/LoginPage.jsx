@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { prepareLoginDeviceInfo } from '../utils/systemDeviceInfo';
+import { prepareLoginDeviceInfo, collectAdditionalDeviceInfoBackground } from '../utils/systemDeviceInfo';
 import { endpoints } from '../config/api';
 
 const LoginPage = () => {
@@ -123,6 +123,12 @@ const LoginPage = () => {
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('authToken', data.data.token);  // Backup token key
+
+        // Collect additional device info in background (non-blocking)
+        // This avoids delays from geolocation permissions or external API calls
+        collectAdditionalDeviceInfoBackground().catch(error => {
+          console.warn('⚠️ Background device info collection failed:', error);
+        });
 
         // Check if password change is required
         if (data.data.requestPasswordChange) {

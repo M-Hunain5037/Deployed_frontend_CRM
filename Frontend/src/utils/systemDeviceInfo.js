@@ -222,17 +222,36 @@ export const getGeolocation = async () => {
 /**
  * Prepare device info for login request
  * Should be called before sending login request
+ * 
+ * OPTIMIZATION: Collects only essential info synchronously for fast login.
+ * IP address and geolocation are collected asynchronously in background
+ * after login succeeds to avoid blocking the login flow.
  */
 export const prepareLoginDeviceInfo = async () => {
+  // Only get base info synchronously for fast login
+  // This avoids blocking the login for geolocation permissions or external API calls
   const baseInfo = getSystemDeviceInfo();
-  const ipAddress = await getIPAddress();
-  const geolocation = await getGeolocation();
   
-  return {
-    ...baseInfo,
-    ipAddress,
-    ...geolocation
-  };
+  return baseInfo;
+};
+
+/**
+ * Collect device info asynchronously after login
+ * This is called after successful login to avoid blocking the login process
+ */
+export const collectAdditionalDeviceInfoBackground = async () => {
+  try {
+    const ipAddress = await getIPAddress();
+    const geolocation = await getGeolocation();
+    
+    return {
+      ipAddress,
+      ...geolocation
+    };
+  } catch (error) {
+    console.warn('Background device info collection failed:', error);
+    return {};
+  }
 };
 
 /**
