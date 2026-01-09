@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { prepareLoginDeviceInfo } from '../utils/systemDeviceInfo';
+import { endpoints } from '../config/api';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -59,7 +60,7 @@ const LoginPage = () => {
         const deviceInfo = await prepareLoginDeviceInfo();
 
         // Send login request to backend
-        const response = await fetch('https://plustaff-backend.onrender.com/api/v1/auth/login', {
+        const response = await fetch(endpoints.auth.login, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ const LoginPage = () => {
             console.log('🔍 Check-in payload:', checkInPayload);
             console.log('📦 Backend response data:', data.data);
             
-            const checkInResponse = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/check-in', {
+            const checkInResponse = await fetch(endpoints.attendance.checkIn, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

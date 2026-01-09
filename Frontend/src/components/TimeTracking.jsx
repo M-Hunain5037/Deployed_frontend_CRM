@@ -1,5 +1,6 @@
 // TimeTracking.jsx
 import React, { useState, useEffect, useMemo } from 'react';
+import { endpoints } from '../config/api';
 import { 
   Clock, Users, Calendar, Filter, Search, Plus, Download, 
   Edit, Trash2, X, Save, LogIn, LogOut, Upload, Coffee,
@@ -18,8 +19,7 @@ export function TimeTracker() {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const API_VERSION = process.env.REACT_APP_API_VERSION || 'v1';
-        const response = await fetch(`https://plustaff-backend.onrender.com/api/${API_VERSION}/activities/today`);
+        const response = await fetch(endpoints.activities.base);
         const data = await response.json();
         
         if (data.success) {

@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HrSidebar from '../../components/HrSidebar';
+import { endpoints, config } from '../../config/api';
 import { 
   Users, Search, Plus, Edit, Trash2, Eye, Download, Filter,
   Mail, Phone, MapPin, Calendar, Briefcase, X, Loader
 } from 'lucide-react';
 
-const API_URL = 'https://plustaff-backend.onrender.com/api/v1';
+const API_URL = config.FULL_API_URL;
 
 const EmployeeManagement = () => {
   const navigate = useNavigate();

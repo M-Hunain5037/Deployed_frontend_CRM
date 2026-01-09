@@ -28,6 +28,7 @@ export const endpoints = {
     register: `${config.FULL_API_URL}/auth/register`,
     changePassword: `${config.FULL_API_URL}/auth/password`,
     verifyToken: `${config.FULL_API_URL}/auth/verify`,
+    ipInfo: `${config.FULL_API_URL}/auth/ip-info`,
   },
 
   // Employee endpoints

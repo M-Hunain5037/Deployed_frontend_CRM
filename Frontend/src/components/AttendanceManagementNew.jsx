@@ -1,5 +1,6 @@
 // AttendanceManagement.jsx - Redesigned
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { endpoints } from '../config/api';
 import {
   CheckCircle, Clock, Download, 
   Search, Filter, Eye, RefreshCw, Activity,
@@ -52,7 +53,7 @@ const AttendanceManagement = () => {
     const fetchAttendance = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://plustaff-backend.onrender.com/api/v1/attendance/all?limit=1000');
+        const response = await fetch(endpoints.attendance.all + '?limit=1000');
         const result = await response.json();
         
         if (result.success && result.data) {

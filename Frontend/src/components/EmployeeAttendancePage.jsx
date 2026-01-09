@@ -88,6 +88,40 @@ const getEmployeeId = () => {
   return user.userId || user.id || 2;
 };
 
+/**
+ * Parse a time string in Pakistan timezone (UTC+5)
+ * Input: "21:56:00" (from API, in Pakistan time)
+ * Returns: Date object representing that time in Pakistan timezone
+ */
+const parsePakistanTime = (dateStr, timeStr) => {
+  if (!timeStr) return null;
+  
+  try {
+    // Parse the time string HH:MM:SS
+    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+    
+    // Create a date in local browser time
+    const date = new Date(`${dateStr}T${timeStr}`);
+    
+    // The API returns times in Pakistan timezone (UTC+5)
+    // JavaScript's Date.parse assumes UTC for ISO strings
+    // But the server times are already in PKT, so we need to account for the difference
+    
+    // Get browser's timezone offset
+    const browserOffsetMinutes = date.getTimezoneOffset(); // Minutes behind UTC (negative if ahead)
+    const pakistanOffsetMinutes = -5 * 60; // Pakistan is UTC+5, so offset is -300 minutes
+    
+    // Adjust for timezone difference
+    const offsetDifference = browserOffsetMinutes - pakistanOffsetMinutes;
+    const adjustedDate = new Date(date.getTime() + (offsetDifference * 60 * 1000));
+    
+    return adjustedDate;
+  } catch (error) {
+    console.error('Error parsing Pakistan time:', error);
+    return new Date(`${dateStr}T${timeStr}`);
+  }
+};
+
 // Custom hook for attendance management
 export const useAttendance = () => {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -318,30 +352,49 @@ export const useAttendance = () => {
   };
 
   const updateWorkingTime = () => {
-    if (systemAttendance.checkedIn && !systemAttendance.isOnBreak && systemAttendance.checkInTime) {
+    if (systemAttendance.checkedIn && systemAttendance.checkInTime) {
       const now = new Date();
-      // Calculate elapsed time from check-in time to now
+      
+      // Calculate elapsed time from check-in time to now (in minutes)
       const elapsedMinutes = (now - systemAttendance.checkInTime) / (1000 * 60);
       
-      setSystemAttendance(prev => ({
-        ...prev,
-        totalWorkingTime: elapsedMinutes,
-        lastUpdate: now
-      }));
+      // ⚠️ SAFETY CHECK: If session has been open for 24+ hours, alert
+      if (elapsedMinutes >= 24 * 60) {
+        const hoursElapsed = (elapsedMinutes / 60).toFixed(1);
+        console.warn(`⚠️ SESSION ALERT: Session open for ${hoursElapsed} hours. Should auto-checkout.`);
+      }
+      
+      // Only update if the value actually changes (to reduce unnecessary re-renders)
+      setSystemAttendance(prev => {
+        const prevTotalTime = prev.totalWorkingTime || 0;
+        // Only update if elapsed time differs by more than 0.5 minutes (updates every ~30 seconds)
+        if (Math.abs(elapsedMinutes - prevTotalTime) > 0.5) {
+          return {
+            ...prev,
+            totalWorkingTime: elapsedMinutes,
+            lastUpdate: now
+          };
+        }
+        return prev;
+      });
 
       // Update hours in attendance data
-      const today = now.toISOString().split('T')[0];
+      const now2 = new Date();
+      const today = now2.toISOString().split('T')[0];
       const hours = elapsedMinutes / 60;
       
       setAttendanceData(prev => {
         const existingIndex = prev.findIndex(day => day.date === today);
         if (existingIndex >= 0) {
           const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            hours: hours.toFixed(1)
-          };
-          return updated;
+          const newHours = hours.toFixed(1);
+          if (updated[existingIndex].hours !== newHours) {
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              hours: newHours
+            };
+            return updated;
+          }
         }
         return prev;
       });
@@ -493,13 +546,12 @@ export const useAttendance = () => {
         
         // Parse check-in and check-out times
         // The API returns check_in_time as HH:MM:SS and attendance_date as YYYY-MM-DD
-        // These are in local time (Pakistan Time), NOT UTC
-        // So we must NOT add 'Z' - that would shift the time by 5 hours
+        // These are in Pakistan time (UTC+5), NOT UTC
         const checkInTime = attendanceRecord.check_in_time 
-          ? new Date(`${attendanceDateStr}T${attendanceRecord.check_in_time}`)
+          ? parsePakistanTime(attendanceDateStr, attendanceRecord.check_in_time)
           : null;
         const checkOutTime = attendanceRecord.check_out_time
-          ? new Date(`${attendanceDateStr}T${attendanceRecord.check_out_time}`)
+          ? parsePakistanTime(attendanceDateStr, attendanceRecord.check_out_time)
           : null;
         
         console.log('📊 Fetched Attendance Data:');
@@ -602,11 +654,12 @@ export const useAttendance = () => {
               ? attendanceRecord.attendance_date.split('T')[0]
               : attendanceRecord.attendance_date;
             
+            // Parse check-in time using Pakistan timezone helper
             const checkInTime = attendanceRecord.check_in_time 
-              ? new Date(`${attendanceDateStr}T${attendanceRecord.check_in_time}`)
+              ? parsePakistanTime(attendanceDateStr, attendanceRecord.check_in_time)
               : null;
             const checkOutTime = attendanceRecord.check_out_time
-              ? new Date(`${attendanceDateStr}T${attendanceRecord.check_out_time}`)
+              ? parsePakistanTime(attendanceDateStr, attendanceRecord.check_out_time)
               : null;
             
             // Update system attendance state with today's data
@@ -616,6 +669,11 @@ export const useAttendance = () => {
             if (isActiveSession && checkInTime) {
               const now = new Date();
               currentWorkingTime = (now - checkInTime) / (1000 * 60);
+              
+              console.log(`⏱️ WORKING TIME CALCULATION:`);
+              console.log(`   Check-in: ${checkInTime.toLocaleString()}`);
+              console.log(`   Now: ${now.toLocaleString()}`);
+              console.log(`   Elapsed: ${currentWorkingTime.toFixed(2)} minutes = ${(currentWorkingTime / 60).toFixed(2)} hours`);
             }
             
             setSystemAttendance(prev => ({
@@ -672,10 +730,10 @@ export const useAttendance = () => {
                 : record.attendance_date;  // If it's already YYYY-MM-DD
               
               const checkInTime = record.check_in_time 
-                ? new Date(`${attendanceDateStr}T${record.check_in_time}`)
+                ? parsePakistanTime(attendanceDateStr, record.check_in_time)
                 : null;
               const checkOutTime = record.check_out_time
-                ? new Date(`${attendanceDateStr}T${record.check_out_time}`)
+                ? parsePakistanTime(attendanceDateStr, record.check_out_time)
                 : null;
                 
               return {
@@ -792,10 +850,10 @@ const AttendanceSheet = ({ attendanceData, onExport, onFilter }) => {
               day: new Date(record.attendance_date).getDate(),
               status: statusLower,
               checkIn: record.check_in_time 
-                ? new Date(`${record.attendance_date}T${record.check_in_time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+                ? parsePakistanTime(record.attendance_date, record.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
                 : '-',
               checkOut: record.check_out_time
-                ? new Date(`${record.attendance_date}T${record.check_out_time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+                ? parsePakistanTime(record.attendance_date, record.check_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
                 : '-',
               hours: record.net_working_time_minutes ? (record.net_working_time_minutes / 60).toFixed(1) : '0.0',
               overtimeHours: record.overtime_hours ? parseFloat(record.overtime_hours).toFixed(2) : '0.0',
@@ -2390,12 +2448,16 @@ export function EmployeeAttendancePage() {
 
   // Format duration for display
   const formatDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.floor(minutes % 60);
+    // Ensure minutes is a number
+    const mins = typeof minutes === 'number' ? minutes : parseFloat(minutes) || 0;
+    
+    const hours = Math.floor(mins / 60);
+    const remainingMins = Math.floor(mins % 60);
+    
     if (hours > 0) {
-      return `${hours}h ${mins}m`;
+      return `${hours}h ${remainingMins}m`;
     }
-    return `${mins}m`;
+    return `${remainingMins}m`;
   };
 
   // Format date for display

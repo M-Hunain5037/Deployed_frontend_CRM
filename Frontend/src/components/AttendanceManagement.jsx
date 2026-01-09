@@ -1,5 +1,6 @@
 // AttendanceManagement.jsx
 import { useState, useEffect, useRef } from 'react';
+import { endpoints, config } from '../config/api';
 import {
   Users, CheckCircle, XCircle, Plus,
   Search, Filter, Download, MoreVertical, Eye, Edit,
@@ -1585,8 +1586,7 @@ export function AdvancedAttendanceManagement() {
     const fetchAttendanceData = async () => {
       try {
         setLoading(true);
-        const API_VERSION = process.env.REACT_APP_API_VERSION || 'v1';
-        const response = await fetch(`https://plustaff-backend.onrender.com/api/${API_VERSION}/attendance/all`);
+        const response = await fetch(endpoints.attendance.all);
         const data = await response.json();
         
         if (data.success) {

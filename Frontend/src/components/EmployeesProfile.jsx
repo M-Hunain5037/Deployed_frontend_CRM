@@ -19,6 +19,7 @@ import {
   Users as UsersIcon, Palette as PaletteIcon,
   Target as TargetIcon
 } from 'lucide-react';
+import { endpoints } from '../config/api';
 
 const EmployeeProfile = () => {
   const [employees, setEmployees] = useState([]);
@@ -28,8 +29,7 @@ const EmployeeProfile = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const API_VERSION = process.env.REACT_APP_API_VERSION || 'v1';
-        const response = await fetch(`https://plustaff-backend.onrender.com/api/${API_VERSION}/employees`);
+        const response = await fetch(endpoints.employees.base);
         const data = await response.json();
         
         if (data.success) {

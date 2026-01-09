@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { endpoints } from '../config/api';
 import {
   Clock, Coffee, Cigarette, Users, AlertCircle, Plus, Edit2, Trash2,
   ChevronDown, ChevronUp, CheckCircle, XCircle, Filter, Download
@@ -171,7 +172,7 @@ export function RulesManagement() {
         }
       }
 
-      const response = await fetch('https://plustaff-backend.onrender.com/api/v1/rules', {
+      const response = await fetch(endpoints.rules.breakRules, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

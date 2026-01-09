@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { endpoints } from '../config/api';
 import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 
 const ChangePasswordPage = () => {
@@ -92,7 +93,7 @@ const ChangePasswordPage = () => {
 
       const authToken = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-      const response = await fetch('https://plustaff-backend.onrender.com/api/v1/auth/password/update', {
+      const response = await fetch(endpoints.auth.changePassword + '/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

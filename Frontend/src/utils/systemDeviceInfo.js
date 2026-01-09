@@ -3,6 +3,8 @@
  * Runs on the frontend to collect device/system info for login tracking
  */
 
+import { endpoints } from '../config/api';
+
 export const getSystemDeviceInfo = async () => {
   try {
     const info = {
@@ -162,7 +164,7 @@ function getHostname() {
  */
 export const getIPAddress = async () => {
   try {
-    const response = await fetch('https://plustaff-backend.onrender.com/api/v1/auth/ip-info');
+    const response = await fetch(endpoints.auth.ipInfo);
     if (response.ok) {
       const data = await response.json();
       return data.ipAddress;
