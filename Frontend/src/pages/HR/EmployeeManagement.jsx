@@ -7,6 +7,7 @@ import {
   Users, Search, Plus, Edit, Trash2, Eye, Download, Filter,
   Mail, Phone, MapPin, Calendar, Briefcase, X, Loader
 } from 'lucide-react';
+import { generateTablePDF, exportToCSV } from '../../utils/pdfExport';
 
 const API_URL = config.FULL_API_URL;
 
@@ -91,6 +92,64 @@ const EmployeeManagement = () => {
         console.error('Error deleting employee:', err);
         alert('Failed to delete employee');
       }
+    }
+  };
+
+  const handleExportPDF = () => {
+    try {
+      // Use filtered employees if filters are applied, otherwise use all
+      const dataToExport = filteredEmployees.length > 0 ? filteredEmployees : employees;
+      
+      if (dataToExport.length === 0) {
+        alert('No employees to export');
+        return;
+      }
+
+      const columns = [
+        { key: 'id', label: 'Employee ID', width: 15 },
+        { key: 'name', label: 'Name', width: 25 },
+        { key: 'email', label: 'Email', width: 30 },
+        { key: 'phone', label: 'Phone', width: 20 },
+        { key: 'department', label: 'Department', width: 20 },
+        { key: 'position', label: 'Position', width: 20 },
+        { key: 'status', label: 'Status', width: 15 }
+      ];
+
+      const filename = `Employee_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+      generateTablePDF('Employee Management Report', 'Complete Employee Directory', columns, dataToExport, filename);
+      console.log('✅ PDF exported successfully');
+    } catch (error) {
+      console.error('❌ Export error:', error);
+      alert('Failed to export PDF');
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      // Use filtered employees if filters are applied, otherwise use all
+      const dataToExport = filteredEmployees.length > 0 ? filteredEmployees : employees;
+      
+      if (dataToExport.length === 0) {
+        alert('No employees to export');
+        return;
+      }
+
+      const columns = [
+        { key: 'id', label: 'Employee ID' },
+        { key: 'name', label: 'Name' },
+        { key: 'email', label: 'Email' },
+        { key: 'phone', label: 'Phone' },
+        { key: 'department', label: 'Department' },
+        { key: 'position', label: 'Position' },
+        { key: 'status', label: 'Status' }
+      ];
+
+      const filename = `Employee_Report_${new Date().toISOString().split('T')[0]}`;
+      exportToCSV(columns, dataToExport, filename);
+      console.log('✅ CSV exported successfully');
+    } catch (error) {
+      console.error('❌ Export error:', error);
+      alert('Failed to export CSV');
     }
   };
 
@@ -261,10 +320,24 @@ const EmployeeManagement = () => {
                       <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>
-                  <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold text-sm">
-                    <Download className="w-5 h-5" />
-                    Export
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleExportPDF}
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold text-sm"
+                      title="Export to PDF"
+                    >
+                      <Download className="w-5 h-5" />
+                      PDF
+                    </button>
+                    <button 
+                      onClick={handleExportCSV}
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold text-sm"
+                      title="Export to CSV"
+                    >
+                      <Download className="w-5 h-5" />
+                      CSV
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

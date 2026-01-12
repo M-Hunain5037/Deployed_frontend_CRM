@@ -662,6 +662,7 @@ const MonthlyOverview = ({
   ];
 
   const timeRangeOptions = [
+    { value: 'today', label: 'Today' },
     { value: 'weekly', label: 'Weekly' },
     { value: 'monthly', label: 'Monthly' },
     { value: 'quarterly', label: 'Quarterly' },
@@ -671,6 +672,8 @@ const MonthlyOverview = ({
   // Calculate data based on time range
   const getChartData = () => {
     switch (timeRange) {
+      case 'today':
+        return getTodayData();
       case 'weekly':
         return getWeeklyData();
       case 'monthly':
@@ -700,6 +703,75 @@ const MonthlyOverview = ({
   };
 
   // Daily data for custom range
+  // Get today's attendance data
+  const getTodayData = () => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const todayRecords = attendanceData.filter(record => record.date === todayStr);
+    
+    let presentCount = 0;
+    let leaveCount = 0;
+    let halfdayCount = 0;
+    let absentCount = 0;
+    let overtimeHours = 0;
+    let lateCount = 0;
+    
+    todayRecords.forEach(record => {
+      if (record.status === 'present' || record.status === 'late') presentCount++;
+      if (record.status === 'leave') leaveCount++;
+      if (record.status === 'halfday') halfdayCount++;
+      if (record.status === 'absent') absentCount++;
+      if (record.overtime && record.overtime !== '0.0') {
+        overtimeHours += parseFloat(record.overtime);
+      }
+      if (record.late && record.late !== '-') lateCount++;
+    });
+    
+    // Return array with single entry for today
+    const data = [];
+    if (activeFilter === 'stacked') {
+      data.push({
+        name: 'Today',
+        present: presentCount,
+        leave: leaveCount,
+        halfday: halfdayCount,
+        absent: absentCount,
+        color: '#10b981'
+      });
+    } else {
+      let value, color;
+      switch (activeFilter) {
+        case 'attendance':
+          value = presentCount;
+          color = '#10b981';
+          break;
+        case 'leaves':
+          value = leaveCount;
+          color = '#f59e0b';
+          break;
+        case 'overtime':
+          value = Math.round(overtimeHours);
+          color = '#3b82f6';
+          break;
+        case 'late':
+          value = lateCount;
+          color = '#ef4444';
+          break;
+        default:
+          value = presentCount;
+          color = '#10b981';
+      }
+      
+      data.push({
+        name: 'Today',
+        value: value,
+        color: color
+      });
+    }
+    
+    return data;
+  };
+
   const getDailyData = (startDate, endDate) => {
     const data = [];
     const currentDate = new Date(startDate);
