@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { endpoints } from '../config/api';
+import { getPakistanTimeString } from '../utils/timezone';
 import {
   Clock, LogIn, LogOut, Coffee, Calendar, AlertCircle, CheckCircle,
   TrendingUp, Users, Download, Filter, RefreshCw, Cigarette, Utensils,
@@ -105,6 +106,9 @@ export function EmployeeAttendancePage() {
   // Check Out
   const handleCheckOut = async () => {
     try {
+      // Get current time in Pakistan timezone (HH:MM:SS format)
+      const checkOutTime = getPakistanTimeString();
+
       const response = await fetch(endpoints.attendance.checkOut, {
         method: 'POST',
         headers: {
@@ -112,7 +116,8 @@ export function EmployeeAttendancePage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          employee_id: userInfo.employeeId
+          employee_id: userInfo.employeeId,
+          check_out_time: checkOutTime
         })
       });
 

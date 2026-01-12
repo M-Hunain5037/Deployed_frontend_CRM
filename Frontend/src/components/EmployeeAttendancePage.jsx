@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { endpoints } from '../config/api';
+import { getPakistanTimeString, getPakistanDate } from '../utils/timezone';
 import {
   Calendar,
   CheckCircle,
@@ -121,6 +122,25 @@ const parsePakistanTime = (dateStr, timeStr) => {
   }
 };
 
+/**
+ * Format a Pakistan time string (HH:MM:SS) to 12-hour format
+ * Input: "23:23:24" (Pakistan timezone)
+ * Output: "11:23 PM"
+ */
+const formatPakistanTimeString = (timeStr) => {
+  if (!timeStr) return 'N/A';
+  
+  try {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const hour12 = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${String(hour12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${ampm}`;
+  } catch (error) {
+    console.error('Error formatting Pakistan time:', error);
+    return timeStr;
+  }
+};
+
 // Custom hook for attendance management
 export const useAttendance = () => {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -177,25 +197,12 @@ export const useAttendance = () => {
       const data = await response.json();
 
       if (data.success) {
-        const now = new Date();
-        // Night shift: 21:00 (9 PM) to 06:00 (6 AM)
-        // Grace period: Until 22:15 (9:15 PM)
+        const now = getPakistanDate();
         const hours = now.getHours();
         const minutes = now.getMinutes();
         const totalMinutes = hours * 60 + minutes;
         const gracePeriodEnd = 22 * 60 + 15; // 22:15 = 1335 minutes
         const isLate = totalMinutes > gracePeriodEnd;
-
-        setSystemAttendance(prev => ({
-          ...prev,
-          checkedIn: true,
-          checkInTime: prev.checkInTime || now,  // Keep existing check-in time if already checked in
-          checkOutTime: null,
-          totalWorkingTime: 0,
-          isOnBreak: false,
-          lastUpdate: now,
-          status: isLate ? 'late' : 'present'
-        }));
         
         console.log('Check-in response:', data.message);
 
@@ -234,6 +241,26 @@ export const useAttendance = () => {
           }
         });
 
+        setSystemAttendance(prev => ({
+          ...prev,
+          checkedIn: true,
+          checkInTime: prev.checkInTime || now,  // Keep existing check-in time if already checked in
+          checkOutTime: null,
+          totalWorkingTime: 0,
+          isOnBreak: false,
+          lastUpdate: now,
+          status: isLate ? 'late' : 'present'
+        }));
+
+        return {
+          timeString: now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          }),
+          isLate: isLate
+        };
+
         return {
           timeString: now.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
@@ -264,7 +291,10 @@ export const useAttendance = () => {
         throw new Error('Authentication token not found. Please login first.');
       }
 
-      console.log('🔴 Checkout request - employeeId:', employeeId, 'user:', user);
+      // Get current time in Pakistan timezone (HH:MM:SS format)
+      const checkOutTimeFromClient = getPakistanTimeString();
+
+      console.log('🔴 Checkout request - employeeId:', employeeId, 'checkOutTime:', checkOutTimeFromClient, 'user:', user);
 
       const response = await fetch(
         endpoints.attendance.checkOut,
@@ -275,7 +305,8 @@ export const useAttendance = () => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            employee_id: employeeId
+            employee_id: employeeId,
+            check_out_time: checkOutTimeFromClient
           })
         }
       );
@@ -1981,9 +2012,9 @@ export function EmployeeAttendancePage() {
       ? totalGrossMinutes + systemAttendance.totalWorkingTime
       : totalGrossMinutes;
     
-    // Only calculate overtime if current time is after 6 AM
-    const now = new Date();
-    const isAfter6AM = now.getHours() >= 6;
+    // Only calculate overtime if current time is after 6 AM (using Pakistan timezone)
+    const nowPKT = getPakistanDate();
+    const isAfter6AM = nowPKT.getHours() >= 6;
     
     const requiredWorkingTime = 9 * 60; // 540 minutes
     let overtimeRequired = 0;
@@ -2530,7 +2561,7 @@ export function EmployeeAttendancePage() {
     if (dbCheckOutTime) {
       return {
         checked: false,
-        message: `Checked out at ${dbCheckOutTime}`,
+        message: `Checked out at ${formatPakistanTimeString(dbCheckOutTime)}`,
         time: dbCheckOutTime
       };
     }
@@ -2539,7 +2570,7 @@ export function EmployeeAttendancePage() {
     if (dbCheckInTime && !dbCheckOutTime) {
       return {
         checked: true,
-        message: `Checked in at ${dbCheckInTime}`,
+        message: `Checked in at ${formatPakistanTimeString(dbCheckInTime)}`,
         time: dbCheckInTime
       };
     }
