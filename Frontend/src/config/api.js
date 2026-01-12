@@ -38,6 +38,7 @@ export const endpoints = {
     create: `${config.FULL_API_URL}/employees`,
     update: (id) => `${config.FULL_API_URL}/employees/${id}`,
     delete: (id) => `${config.FULL_API_URL}/employees/${id}`,
+    checkIdAvailability: (numericId) => `${config.FULL_API_URL}/check-employee-id/${numericId}`,
   },
 
   // Attendance endpoints

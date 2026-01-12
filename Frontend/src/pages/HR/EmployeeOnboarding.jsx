@@ -23,8 +23,8 @@ const EmployeeOnboarding = () => {
     employeeId: '',
     name: '',
     email: '',
-    password: '',
-    confirmPassword: '',
+    password: 'karachi123',
+    confirmPassword: 'karachi123',
     phone: '',
     cnic: '',
     department: '',
@@ -62,12 +62,16 @@ const EmployeeOnboarding = () => {
   });
 
   const [showResourcesSection, setShowResourcesSection] = useState(false);
+  const [employeeIdStatus, setEmployeeIdStatus] = useState(null); // 'available', 'exists', 'checking'
+  const [suggestedNextId, setSuggestedNextId] = useState(null);
+  const EMPLOYEE_ID_PREFIX = 'DIG';
 
   // ----- Form step helpers and validation -----
   const validateStep = (step) => {
     const newErrors = {};
     if (step === 1) {
       if (!formData.employeeId.trim()) newErrors.employeeId = 'Employee ID is required';
+      else if (employeeIdStatus === 'exists') newErrors.employeeId = 'This Employee ID already exists';
       if (!formData.name.trim()) newErrors.name = 'Name is required';
       if (!formData.email.trim()) newErrors.email = 'Email is required';
       // very light email validation
@@ -119,6 +123,7 @@ const EmployeeOnboarding = () => {
     // Prepare data to send to backend
     const employeeDataForBackend = {
       ...formData,
+      employeeId: `${EMPLOYEE_ID_PREFIX}-${String(formData.employeeId).padStart(3, '0')}`,
       baseSalary: Number(formData.baseSalary || 0),
       allowances: formData.allowances, // Send allowances array
     };
@@ -170,8 +175,8 @@ const EmployeeOnboarding = () => {
       employeeId: '',
       name: '',
       email: '',
-      password: '',
-      confirmPassword: '',
+      password: 'karachi123',
+      confirmPassword: 'karachi123',
       phone: '',
       cnic: '',
       department: '',
@@ -210,12 +215,74 @@ const EmployeeOnboarding = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let newValue = value;
+    
+    // Handle employee ID - only numeric input
+    if (name === 'employeeId') {
+      newValue = value.replace(/[^0-9]/g, ''); // Remove all non-numeric characters
+      // Check ID availability when user finishes typing
+      if (newValue) {
+        checkEmployeeIdAvailability(newValue);
+      } else {
+        setEmployeeIdStatus(null);
+        setSuggestedNextId(null);
+      }
+    }
+    
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : newValue
     });
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
+    }
+  };
+
+  const checkEmployeeIdAvailability = async (numericId) => {
+    setEmployeeIdStatus('checking');
+    try {
+      // Validate input - must be numeric only
+      if (!numericId || !/^\d+$/.test(numericId)) {
+        setEmployeeIdStatus('invalid');
+        setSuggestedNextId('Employee ID must contain only numeric digits');
+        return;
+      }
+
+      // Validate minimum 3 digits
+      if (numericId.length < 3) {
+        setEmployeeIdStatus('invalid');
+        setSuggestedNextId(`Employee ID must have at least 3 digits (currently ${numericId.length})`);
+        return;
+      }
+
+      // Validate "000" is not allowed
+      if (numericId === '000' || parseInt(numericId) === 0) {
+        setEmployeeIdStatus('invalid');
+        setSuggestedNextId('000 is not allowed');
+        return;
+      }
+
+      // Call backend API to check availability
+      const response = await fetch(endpoints.employees.checkIdAvailability(numericId));
+      const data = await response.json();
+
+      if (data.exists) {
+        // ID exists
+        setEmployeeIdStatus('exists');
+        setSuggestedNextId(data.suggestedId);
+      } else if (data.success) {
+        // ID is available
+        setEmployeeIdStatus('available');
+        setSuggestedNextId(null);
+      } else {
+        // Invalid input
+        setEmployeeIdStatus('invalid');
+        setSuggestedNextId(data.message);
+      }
+    } catch (error) {
+      console.error('Error checking employee ID:', error);
+      setEmployeeIdStatus(null);
+      setSuggestedNextId(null);
     }
   };
 
@@ -362,17 +429,75 @@ const EmployeeOnboarding = () => {
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Employee ID *</label>
-                      <input
-                        type="text"
-                        name="employeeId"
-                        value={formData.employeeId}
-                        onChange={handleInputChange}
-                        placeholder="EMP-001"
-                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 ${
-                          errors.employeeId ? 'border-red-500 focus:ring-red-500' : 'border-blue-200 focus:ring-blue-500'
-                        }`}
-                      />
+                      <div className="relative">
+                        <div className="flex items-center">
+                          <span className="absolute left-4 text-slate-700 font-semibold text-base">{EMPLOYEE_ID_PREFIX}-</span>
+                          <input
+                            type="text"
+                            name="employeeId"
+                            value={formData.employeeId}
+                            onChange={handleInputChange}
+                            placeholder="001 or 0001 or 00001..."
+                            className={`w-full pl-20 pr-12 py-3 border rounded-xl focus:outline-none focus:ring-2 ${
+                              errors.employeeId ? 'border-red-500 focus:ring-red-500' : 
+                              employeeIdStatus === 'exists' ? 'border-red-500 focus:ring-red-500' :
+                              employeeIdStatus === 'invalid' ? 'border-orange-500 focus:ring-orange-500' :
+                              employeeIdStatus === 'available' ? 'border-green-500 focus:ring-green-500' :
+                              'border-blue-200 focus:ring-blue-500'
+                            }`}
+                          />
+                          {/* Status Icon */}
+                          <div className="absolute right-4">
+                            {employeeIdStatus === 'checking' && (
+                              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            )}
+                            {employeeIdStatus === 'exists' && (
+                              <AlertCircle className="w-5 h-5 text-red-500" />
+                            )}
+                            {employeeIdStatus === 'available' && (
+                              <CheckCircle className="w-5 h-5 text-green-500" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Error message */}
                       {errors.employeeId && <p className="text-red-500 text-sm mt-1">{errors.employeeId}</p>}
+                      
+                      {/* Invalid status message */}
+                      {employeeIdStatus === 'invalid' && suggestedNextId && (
+                        <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                          <p className="text-sm text-orange-700 font-medium">❌ {suggestedNextId}</p>
+                          <p className="text-xs text-orange-600 mt-1">ID must be 3+ digits and cannot be 000</p>
+                        </div>
+                      )}
+                      
+                      {/* Status messages */}
+                      {employeeIdStatus === 'exists' && suggestedNextId && (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-sm text-red-700 font-medium">⚠️ This ID already exists</p>
+                          <p className="text-sm text-red-600 mt-1">
+                            💡 Try next available ID: <span className="font-semibold text-red-800">{suggestedNextId}</span>
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const numericPart = suggestedNextId.split('-')[1];
+                              setFormData({ ...formData, employeeId: numericPart });
+                              checkEmployeeIdAvailability(numericPart);
+                            }}
+                            className="mt-2 text-sm px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                          >
+                            Use Suggested ID
+                          </button>
+                        </div>
+                      )}
+                      
+                      {employeeIdStatus === 'available' && formData.employeeId && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-700 font-medium">✅ ID is available</p>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -413,7 +538,7 @@ const EmployeeOnboarding = () => {
                 <div className="space-y-6">
                   <div className="mb-8">
                     <h2 className="text-2xl font-bold text-gray-900">Security Setup</h2>
-                    <p className="text-gray-600 mt-2">Create a secure password for the employee account</p>
+                    <p className="text-gray-600 mt-2">Default password set for new employee accounts</p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-6">
@@ -425,10 +550,9 @@ const EmployeeOnboarding = () => {
                           name="password"
                           value={formData.password}
                           onChange={handleInputChange}
-                          placeholder="Enter temporary password (min 8 characters)"
-                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 ${
-                            errors.password ? 'border-red-500 focus:ring-red-500' : 'border-blue-200 focus:ring-blue-500'
-                          }`}
+                          placeholder="karachi123"
+                          disabled
+                          className="w-full px-4 py-3 border border-gray-300 bg-gray-100 rounded-xl focus:outline-none cursor-not-allowed text-gray-700"
                         />
                         <button
                           type="button"
@@ -438,7 +562,7 @@ const EmployeeOnboarding = () => {
                           {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
-                      {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                      <p className="text-sm text-gray-600 mt-2">Default password for all new employees</p>
                     </div>
 
                     <div>
@@ -448,22 +572,19 @@ const EmployeeOnboarding = () => {
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
-                        placeholder="Confirm password"
-                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 ${
-                          errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-blue-200 focus:ring-blue-500'
-                        }`}
+                        placeholder="karachi123"
+                        disabled
+                        className="w-full px-4 py-3 border border-gray-300 bg-gray-100 rounded-xl focus:outline-none cursor-not-allowed text-gray-700"
                       />
-                      {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                      <p className="text-sm text-gray-600 mt-2">Matches the default password</p>
                     </div>
 
-                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <div className="p-4 bg-green-50 rounded-xl border border-green-200">
                       <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-slate-700">Password Change Required</p>
-                          <p className="text-xs text-gray-600 mt-1">The employee will be required to change their password on first login. This is a mandatory security requirement for all new accounts.</p>
+                          <p className="text-sm font-medium text-slate-700">✓ Password Set</p>
+                          <p className="text-xs text-gray-600 mt-1">Default password "karachi123" has been assigned. The employee will be required to change their password on first login for security.</p>
                         </div>
                       </div>
                     </div>
