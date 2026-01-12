@@ -18,8 +18,13 @@ const EmployeeManagement = () => {
   const [filterDept, setFilterDept] = useState('All');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editFormData, setEditFormData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
+  const itemsPerPage = 10;
 
   const [employees, setEmployees] = useState([]);
 
@@ -59,6 +64,17 @@ const EmployeeManagement = () => {
     return matchesSearch && matchesDept;
   });
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterDept]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
+
   const handleDeleteEmployee = async (id) => {
     if (window.confirm('Are you sure you want to delete this employee?')) {
       try {
@@ -80,7 +96,50 @@ const EmployeeManagement = () => {
 
   const handleViewDetails = (employee) => {
     setSelectedEmployee(employee);
+    setEditFormData(null);
+    setIsEditMode(false);
     setShowDetailsModal(true);
+  };
+
+  const handleEditEmployee = (employee) => {
+    setEditFormData({ ...employee });
+    setIsEditMode(true);
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveEmployee = async () => {
+    try {
+      setIsSaving(true);
+      const response = await fetch(`${API_URL}/employees/${editFormData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(editFormData)
+      });
+
+      if (response.ok) {
+        const updatedEmployee = await response.json();
+        setEmployees(employees.map(emp => emp.id === editFormData.id ? editFormData : emp));
+        setSelectedEmployee(editFormData);
+        setIsEditMode(false);
+        alert('Employee details updated successfully!');
+      } else {
+        alert('Failed to update employee');
+      }
+    } catch (err) {
+      console.error('Error updating employee:', err);
+      alert('Failed to update employee');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -113,8 +172,8 @@ const EmployeeManagement = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-10">
-          <div className="max-w-7xl mx-auto">
+        <div className="flex-1 overflow-y-auto px-4 py-10 md:px-8">
+          <div className="w-full max-w-full mx-auto">
             {/* Stats Cards */}
             <div className="mb-12">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6">Overview</h3>
@@ -236,14 +295,14 @@ const EmployeeManagement = () => {
                           </div>
                         </td>
                       </tr>
-                    ) : filteredEmployees.length === 0 ? (
+                    ) : paginatedEmployees.length === 0 ? (
                       <tr>
                         <td colSpan="8" className="py-12 px-7 text-center">
                           <span className="text-gray-500">No employees found</span>
                         </td>
                       </tr>
                     ) : (
-                      filteredEmployees.map((employee) => (
+                      paginatedEmployees.map((employee) => (
                         <tr key={employee.id} className="hover:bg-blue-50 transition-colors duration-150 group">
                           <td className="py-5 px-7">
                             <span className="font-bold text-blue-600 text-sm bg-blue-50 px-4 py-2 rounded-lg group-hover:bg-blue-100">{employee.employee_id}</span>
@@ -293,6 +352,11 @@ const EmployeeManagement = () => {
                                 <Eye className="w-5 h-5" />
                               </button>
                               <button
+                                onClick={() => {
+                                  setSelectedEmployee(employee);
+                                  handleEditEmployee(employee);
+                                  setShowDetailsModal(true);
+                                }}
                                 className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all font-medium"
                                 title="Edit"
                               >
@@ -313,6 +377,64 @@ const EmployeeManagement = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Controls */}
+              {filteredEmployees.length > 0 && (
+                <div className="flex items-center justify-between px-7 py-6 bg-gray-50 border-t border-gray-100">
+                  <div className="text-sm text-gray-600 font-medium">
+                    Showing <span className="font-bold text-gray-900">{startIndex + 1}</span> to <span className="font-bold text-gray-900">{Math.min(endIndex, filteredEmployees.length)}</span> of <span className="font-bold text-gray-900">{filteredEmployees.length}</span> employees
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-2">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                              currentPage === pageNum
+                                ? 'bg-blue-500 text-white shadow-md'
+                                : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      {totalPages > 5 && (
+                        <>
+                          <span className="text-gray-400 px-2">...</span>
+                          <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                              currentPage === totalPages
+                                ? 'bg-blue-500 text-white shadow-md'
+                                : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {totalPages}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Empty State */}
@@ -351,13 +473,20 @@ const EmployeeManagement = () => {
                   <p className="text-slate-600 text-lg">{selectedEmployee.position || 'N/A'}</p>
                   <div className="flex gap-2 mt-3">
                     <span className="inline-block px-4 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
-                      {selectedEmployee.status || 'Active'}
+                      {isEditMode ? (
+                        <select
+                          value={editFormData.status || 'Active'}
+                          onChange={(e) => handleEditFormChange('status', e.target.value)}
+                          className="bg-green-100 text-green-700 border-0 outline-none cursor-pointer font-semibold"
+                        >
+                          <option>Active</option>
+                          <option>Inactive</option>
+                          <option>On Leave</option>
+                        </select>
+                      ) : (
+                        selectedEmployee.status || 'Active'
+                      )}
                     </span>
-                    {selectedEmployee.request_password_change && (
-                      <span className="inline-block px-4 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-semibold">
-                        Change Password Required
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -365,51 +494,114 @@ const EmployeeManagement = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
                   <Mail className="w-5 h-5 text-blue-600" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-slate-600 font-medium">Email</p>
-                    <p className="text-slate-800 font-semibold">{selectedEmployee.email}</p>
+                    {isEditMode ? (
+                      <input
+                        type="email"
+                        value={editFormData.email || ''}
+                        onChange={(e) => handleEditFormChange('email', e.target.value)}
+                        className="w-full bg-white text-slate-800 font-semibold border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-semibold">{selectedEmployee.email}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
                   <Phone className="w-5 h-5 text-blue-600" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-slate-600 font-medium">Phone</p>
-                    <p className="text-slate-800 font-semibold">{selectedEmployee.phone || 'N/A'}</p>
+                    {isEditMode ? (
+                      <input
+                        type="tel"
+                        value={editFormData.phone || ''}
+                        onChange={(e) => handleEditFormChange('phone', e.target.value)}
+                        className="w-full bg-white text-slate-800 font-semibold border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-semibold">{selectedEmployee.phone || 'N/A'}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
                   <Briefcase className="w-5 h-5 text-blue-600" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-slate-600 font-medium">Department</p>
-                    <p className="text-slate-800 font-semibold">{selectedEmployee.department || 'N/A'}</p>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={editFormData.department || ''}
+                        onChange={(e) => handleEditFormChange('department', e.target.value)}
+                        className="w-full bg-white text-slate-800 font-semibold border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-semibold">{selectedEmployee.department || 'N/A'}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
                   <Calendar className="w-5 h-5 text-blue-600" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-slate-600 font-medium">Join Date</p>
-                    <p className="text-slate-800 font-semibold">
-                      {selectedEmployee.join_date ? new Date(selectedEmployee.join_date).toLocaleDateString() : 'N/A'}
-                    </p>
+                    {isEditMode ? (
+                      <input
+                        type="date"
+                        value={editFormData.join_date ? editFormData.join_date.split('T')[0] : ''}
+                        onChange={(e) => handleEditFormChange('join_date', e.target.value)}
+                        className="w-full bg-white text-slate-800 font-semibold border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-semibold">
+                        {selectedEmployee.join_date ? new Date(selectedEmployee.join_date).toLocaleDateString() : 'N/A'}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl col-span-2">
                   <MapPin className="w-5 h-5 text-blue-600" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-slate-600 font-medium">Address</p>
-                    <p className="text-slate-800 font-semibold">{selectedEmployee.address || 'N/A'}</p>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={editFormData.address || ''}
+                        onChange={(e) => handleEditFormChange('address', e.target.value)}
+                        className="w-full bg-white text-slate-800 font-semibold border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-semibold">{selectedEmployee.address || 'N/A'}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl col-span-2">
-                  <div>
-                    <p className="text-xs text-slate-600 font-medium">Base Salary</p>
-                    <p className="text-slate-800 font-semibold">
-                      {selectedEmployee.base_salary ? `PKR ${Number(selectedEmployee.base_salary).toLocaleString()}` : '—'}
-                    </p>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-600 font-medium">Base Salary (PKR)</p>
+                    {isEditMode ? (
+                      <input
+                        type="number"
+                        value={editFormData.base_salary || ''}
+                        onChange={(e) => handleEditFormChange('base_salary', e.target.value)}
+                        className="w-full bg-white text-slate-800 font-semibold border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-semibold">
+                        {selectedEmployee.base_salary ? `PKR ${Number(selectedEmployee.base_salary).toLocaleString()}` : '—'}
+                      </p>
+                    )}
                   </div>
-                  <div className="ml-6">
-                    <p className="text-xs text-slate-600 font-medium">Total Compensation</p>
-                    <p className="text-slate-800 font-semibold">{`$${Number(selectedEmployee.totalCompensation || selectedEmployee.baseSalary || 0).toLocaleString()}`}</p>
+                  <div className="ml-6 flex-1">
+                    <p className="text-xs text-slate-600 font-medium">Position</p>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        value={editFormData.position || ''}
+                        onChange={(e) => handleEditFormChange('position', e.target.value)}
+                        className="w-full bg-white text-slate-800 font-semibold border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <p className="text-slate-800 font-semibold">{selectedEmployee.position || 'N/A'}</p>
+                    )}
                   </div>
                 </div>
                 {(selectedEmployee.laptop || selectedEmployee.charger || selectedEmployee.mouse || selectedEmployee.keyboard || selectedEmployee.monitor || selectedEmployee.other) && (
@@ -439,6 +631,51 @@ const EmployeeManagement = () => {
                       )}
                     </div>
                   </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
+                {!isEditMode ? (
+                  <>
+                    <button
+                      onClick={() => setShowDetailsModal(false)}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-medium"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => handleEditEmployee(selectedEmployee)}
+                      className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit Employee
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setIsEditMode(false)}
+                      disabled={isSaving}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-medium disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveEmployee}
+                      disabled={isSaving}
+                      className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Changes'
+                      )}
+                    </button>
+                  </>
                 )}
               </div>
             </div>

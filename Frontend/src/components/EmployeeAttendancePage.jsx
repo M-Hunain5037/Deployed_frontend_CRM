@@ -354,8 +354,23 @@ export const useAttendance = () => {
     if (systemAttendance.checkedIn && systemAttendance.checkInTime) {
       const now = new Date();
       
+      // Ensure checkInTime is a Date object (in case it's a string from API)
+      let checkInDate = systemAttendance.checkInTime;
+      if (typeof checkInDate === 'string') {
+        checkInDate = new Date(checkInDate);
+      }
+      
+      // Validate that we have a valid Date
+      if (!(checkInDate instanceof Date) || isNaN(checkInDate)) {
+        console.error('❌ Invalid checkInTime format:', systemAttendance.checkInTime);
+        return;
+      }
+      
       // Calculate elapsed time from check-in time to now (in minutes)
-      const elapsedMinutes = (now - systemAttendance.checkInTime) / (1000 * 60);
+      const elapsedMinutes = (now - checkInDate) / (1000 * 60);
+      
+      // Debug logging for time calculation
+      console.log(`⏱️ TIME UPDATE: checkInDate=${checkInDate.toLocaleString()}, now=${now.toLocaleString()}, elapsedMinutes=${elapsedMinutes.toFixed(2)}`);
       
       // ⚠️ SAFETY CHECK: If session has been open for 24+ hours, alert
       if (elapsedMinutes >= 24 * 60) {
@@ -366,8 +381,9 @@ export const useAttendance = () => {
       // Only update if the value actually changes (to reduce unnecessary re-renders)
       setSystemAttendance(prev => {
         const prevTotalTime = prev.totalWorkingTime || 0;
-        // Only update if elapsed time differs by more than 0.5 minutes (updates every ~30 seconds)
-        if (Math.abs(elapsedMinutes - prevTotalTime) > 0.5) {
+        // Update every second for smooth timer (was 0.5 minutes)
+        if (Math.abs(elapsedMinutes - prevTotalTime) > 0.016) {
+          console.log(`📊 STATE UPDATE: totalWorkingTime ${prevTotalTime.toFixed(2)} -> ${elapsedMinutes.toFixed(2)}`);
           return {
             ...prev,
             totalWorkingTime: elapsedMinutes,
@@ -2020,7 +2036,7 @@ export function EmployeeAttendancePage() {
     }, 1000); // Update every 1 second for smooth timer display
 
     return () => clearInterval(timer);
-  }, [systemAttendance.checkedIn, systemAttendance.lastUpdate, systemAttendance.isOnBreak, breakData]);
+  }, [systemAttendance.checkedIn, systemAttendance.checkInTime, systemAttendance.totalWorkingTime, systemAttendance.isOnBreak, breakData, breakTypes, updateWorkingTime]);
 
   // Save break immediately when started (before end is triggered)
   const saveBreakStart = async (breakType, startTime) => {
