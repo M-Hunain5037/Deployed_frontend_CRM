@@ -454,7 +454,8 @@ const UnexplainedAbsenceTracking = ({
   employees, 
   selectedDate,
   onMarkAsExplained,
-  onSendReminder 
+  onSendReminder,
+  onOpenExplanationModal
 }) => {
   const [selectedAbsences, setSelectedAbsences] = useState([]);
 
@@ -499,7 +500,9 @@ const UnexplainedAbsenceTracking = ({
   const handleBulkMarkAsExplained = () => {
     selectedAbsences.forEach(index => {
       const absence = unexplainedAbsences[index];
-      onMarkAsExplained(absence.employee.id, selectedDate, 'Employee provided explanation');
+      if (absence && absence.employee) {
+        onMarkAsExplained(absence.employee.id, selectedDate, 'Employee provided explanation');
+      }
     });
     setSelectedAbsences([]);
   };
@@ -507,7 +510,9 @@ const UnexplainedAbsenceTracking = ({
   const handleBulkSendReminder = () => {
     selectedAbsences.forEach(index => {
       const absence = unexplainedAbsences[index];
-      onSendReminder(absence.employee.id, absence.employee.name);
+      if (absence && absence.employee) {
+        onSendReminder(absence.employee.id, absence.employee.name);
+      }
     });
   };
 
@@ -568,6 +573,7 @@ const UnexplainedAbsenceTracking = ({
           </div>
 
           {unexplainedAbsences.map((absence, index) => (
+            absence && absence.employee ? (
             <div 
               key={absence.employee.id} 
               className="flex items-center p-5 bg-red-50 rounded-2xl border border-red-300 hover:shadow-md transition-all duration-300"
@@ -602,22 +608,16 @@ const UnexplainedAbsenceTracking = ({
                 
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => onMarkAsExplained(absence.employee.id, absence.date, 'Employee provided explanation')}
+                    onClick={() => onOpenExplanationModal(absence.employee.id, absence.date)}
                     className="flex items-center px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition duration-200"
                   >
                     <UserCheck className="h-3 w-3 mr-1" />
-                    Mark Explained
-                  </button>
-                  <button
-                    onClick={() => onSendReminder(absence.employee.id, absence.employee.name)}
-                    className="flex items-center px-3 py-1 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition duration-200"
-                  >
-                    <MessageCircle className="h-3 w-3 mr-1" />
-                    Remind
+                    Explain
                   </button>
                 </div>
               </div>
             </div>
+            ) : null
           ))}
         </div>
       ) : (
@@ -1638,7 +1638,8 @@ const EmployeeDetailView = ({
   holidays, 
   employeeLeaves, 
   onMarkAsExplained,
-  onUpdateAttendanceNotes 
+  onUpdateAttendanceNotes,
+  onOpenExplanationModal
 }) => {
   const [isEditingAttendance, setIsEditingAttendance] = useState(null);
   const [selectedDateBreaks, setSelectedDateBreaks] = useState([]);
@@ -1939,6 +1940,7 @@ const EmployeeDetailView = ({
             
             <div className="space-y-3">
               {unexplainedAbsences.map(absence => (
+                absence && absence.employee ? (
                 <div key={absence.id} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
                   <div className="flex items-center space-x-4">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -1958,14 +1960,15 @@ const EmployeeDetailView = ({
                   
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => onMarkAsExplained(employee.id, absence.date, 'Employee provided explanation later')}
+                      onClick={() => onOpenExplanationModal(absence.employee.id, absence.date)}
                       className="flex items-center px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition duration-200"
                     >
                       <UserCheck className="h-3 w-3 mr-1" />
-                      Mark Explained
+                      Explain
                     </button>
                   </div>
                 </div>
+                ) : null
               ))}
             </div>
           </div>
@@ -2581,7 +2584,9 @@ const OverviewTab = ({
   attendanceData,
   onMarkAsExplained,
   onSendReminder,
-  onUpdateAttendanceNotes
+  onUpdateAttendanceNotes,
+  setExplanationData,
+  setIsExplanationModalOpen
 }) => {
   const navigateMonth = (direction) => {
     const newDate = new Date(currentDate);
@@ -2648,6 +2653,10 @@ const OverviewTab = ({
         selectedDate={selectedDate}
         onMarkAsExplained={onMarkAsExplained}
         onSendReminder={onSendReminder}
+        onOpenExplanationModal={(employeeId, date) => {
+          setExplanationData({ employeeId, date, explanation: '' });
+          setIsExplanationModalOpen(true);
+        }}
       />
 
       {/* Filters Section */}
@@ -3546,6 +3555,11 @@ export function HrAttendancePage() {
   const [isAddEmployeeModalOpen, setIsAddEmployeeModalOpen] = useState(false);
   const [isAddHolidayModalOpen, setIsAddHolidayModalOpen] = useState(false);
   const [isAddBreakModalOpen, setIsAddBreakModalOpen] = useState(false);
+  
+  // Explanation modal state
+  const [isExplanationModalOpen, setIsExplanationModalOpen] = useState(false);
+  const [explanationData, setExplanationData] = useState({ employeeId: null, date: null, explanation: '' });
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [bulkAction, setBulkAction] = useState('');
@@ -3723,21 +3737,7 @@ export function HrAttendancePage() {
     return filtered;
   };
 
-  // Add functions for handling Uninformed
-  const handleMarkAsExplained = (employeeId, date, explanation) => {
-    setAttendanceData(prev => prev.map(att => 
-      att.employeeId === employeeId && att.date === date 
-        ? { ...att, notes: explanation }
-        : att
-    ));
-    addNotification('Absence marked as explained', 'success');
-  };
-
-  const handleSendReminder = (employeeId, employeeName) => {
-    // In a real app, this would send an email or notification
-    console.log(`Sending reminder to ${employeeName} (ID: ${employeeId})`);
-    addNotification(`Reminder sent to ${employeeName}`, 'info');
-  };
+  
 
   // Updated handleManualAttendance function (simplified without check-in/check-out)
   const handleManualAttendance = (employeeId, date, status, notes = '') => {
@@ -4210,6 +4210,32 @@ export function HrAttendancePage() {
     }, 5000);
   };
 
+  // Functions for handling Uninformed/explanations and reminders
+  const handleMarkAsExplained = (employeeId, date, explanation) => {
+    setAttendanceData(prev => prev.map(att => 
+      att.employeeId === employeeId && att.date === date 
+        ? { ...att, notes: explanation, status: 'explained' }
+        : att
+    ));
+    addNotification(`Absence marked as explained with reason: ${explanation}`, 'success');
+  };
+
+  const handleExplainModalSubmit = () => {
+    if (!explanationData.explanation.trim()) {
+      addNotification('Please enter an explanation', 'error');
+      return;
+    }
+    handleMarkAsExplained(explanationData.employeeId, explanationData.date, explanationData.explanation);
+    setIsExplanationModalOpen(false);
+    setExplanationData({ employeeId: null, date: null, explanation: '' });
+  };
+
+  const handleSendReminder = (employeeId, employeeName) => {
+    // In a real app, this would send an email or notification
+    console.log(`Sending reminder to ${employeeName} (ID: ${employeeId})`);
+    addNotification(`Reminder sent to ${employeeName}`, 'info');
+  };
+
   const toggleEmployeeSelection = (employeeId) => {
     setSelectedEmployees(prev => 
       prev.includes(employeeId)
@@ -4519,6 +4545,8 @@ export function HrAttendancePage() {
                   onMarkAsExplained={handleMarkAsExplained}
                   onSendReminder={handleSendReminder}
                   onUpdateAttendanceNotes={handleUpdateAttendanceNotes}
+                  setExplanationData={setExplanationData}
+                  setIsExplanationModalOpen={setIsExplanationModalOpen}
                 />
               </>
             )}
@@ -4565,6 +4593,10 @@ export function HrAttendancePage() {
             employeeLeaves={employeeLeaves}
             onMarkAsExplained={handleMarkAsExplained}
             onUpdateAttendanceNotes={handleUpdateAttendanceNotes}
+            onOpenExplanationModal={(employeeId, date) => {
+              setExplanationData({ employeeId, date, explanation: '' });
+              setIsExplanationModalOpen(true);
+            }}
           />
         )}
       </div>
@@ -4578,6 +4610,56 @@ export function HrAttendancePage() {
         onAddEmployee={editingEmployee ? handleEditEmployee : handleAddEmployee}
         editingEmployee={editingEmployee}
       />
+
+      {/* Explanation Modal */}
+      {isExplanationModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Add Explanation</h3>
+              <button
+                onClick={() => {
+                  setIsExplanationModalOpen(false);
+                  setExplanationData({ employeeId: null, date: null, explanation: '' });
+                }}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Please provide a reason or explanation for this absence.
+            </p>
+
+            <textarea
+              value={explanationData.explanation}
+              onChange={(e) => setExplanationData(prev => ({ ...prev, explanation: e.target.value }))}
+              placeholder="Enter reason or remarks here..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+              rows="4"
+            />
+
+            <div className="flex items-center space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setIsExplanationModalOpen(false);
+                  setExplanationData({ employeeId: null, date: null, explanation: '' });
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExplainModalSubmit}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <NotificationContainer notifications={notifications} />
 
