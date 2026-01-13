@@ -258,7 +258,7 @@ const HRMyAttendance = () => {
   const handleBreakStart = async (breakType) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(endpoints.attendance.startBreak, {
+      const response = await fetch(endpoints.attendance.breakStart, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -286,15 +286,31 @@ const HRMyAttendance = () => {
   const handleBreakEnd = async (breakId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(endpoints.attendance.endBreak, {
-        method: 'POST',
+      const employeeId = getEmployeeId();
+      
+      // Find the break details from activeBreaks
+      const breakRecord = activeBreaks.find(b => b.id === breakId);
+      if (!breakRecord) {
+        alert('Break record not found');
+        return;
+      }
+
+      // Calculate duration from start time to now
+      const now = new Date();
+      const breakStartTime = new Date(`2000-01-01 ${breakRecord.break_start_time}`);
+      const duration = Math.floor((now - breakStartTime) / (1000 * 60)); // Duration in minutes
+
+      const response = await fetch(endpoints.attendance.breakEnd, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          break_id: breakId,
-          employee_id: getEmployeeId()
+          employee_id: employeeId,
+          break_type: breakRecord.break_type,
+          break_end_time: now.toTimeString().split(' ')[0],
+          break_duration_minutes: duration
         })
       });
 
@@ -369,10 +385,10 @@ const HRMyAttendance = () => {
   };
 
   const breakTypes = [
-    { type: 'smoke', label: 'Smoke Break', icon: Cigarette, color: 'bg-gray-500' },
-    { type: 'dinner', label: 'Dinner Break', icon: Utensils, color: 'bg-orange-500' },
-    { type: 'washroom', label: 'Washroom Break', icon: User, color: 'bg-blue-500' },
-    { type: 'prayer', label: 'Prayer Break', icon: Activity, color: 'bg-purple-500' }
+    { type: 'Smoke', label: 'Smoke Break', icon: Cigarette, color: 'bg-gray-500' },
+    { type: 'Dinner', label: 'Dinner Break', icon: Utensils, color: 'bg-orange-500' },
+    { type: 'Washroom', label: 'Washroom Break', icon: User, color: 'bg-blue-500' },
+    { type: 'Prayer', label: 'Prayer Break', icon: Activity, color: 'bg-purple-500' }
   ];
 
   return (
