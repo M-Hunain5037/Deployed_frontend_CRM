@@ -161,21 +161,27 @@ const addDataTable = (doc, columns, data, yPos) => {
   let currentY = yPos;
   
   // Header row
-  doc.setFillColor(...colors.headerBg);
+  doc.setFillColor(...colors.primary); // Use primary color (blue) instead of light gray
   doc.setFont(undefined, fonts.heading.weight);
   doc.setFontSize(fonts.heading.size);
-  doc.setTextColor(...colors.text);
+  doc.setTextColor(255, 255, 255); // White text for contrast
   
   let currentX = margins.left;
-  const headerHeight = 8;
+  const headerHeight = 10; // Increased from 8 to 10
   
   // Draw header cells
   columns.forEach((col) => {
     const colWidth = (col.width || 20) * scale;
+    // Draw blue background
+    doc.setFillColor(...colors.primary);
     doc.rect(currentX, currentY, colWidth, headerHeight, 'F');
+    // Draw border
     doc.setDrawColor(...colors.borderColor);
     doc.rect(currentX, currentY, colWidth, headerHeight);
-    doc.text(col.label, currentX + 2, currentY + 6);
+    // Set text color and draw text
+    doc.setTextColor(255, 255, 255); // Ensure white text
+    doc.setFont(undefined, fonts.heading.weight);
+    doc.text(col.label, currentX + 2, currentY + headerHeight - 3);
     currentX += colWidth;
   });
   
@@ -195,18 +201,25 @@ const addDataTable = (doc, columns, data, yPos) => {
       currentY = margins.top;
       
       // Repeat header on new page
-      doc.setFillColor(...colors.headerBg);
+      doc.setFillColor(...colors.primary); // Use primary color (blue)
       doc.setFont(undefined, fonts.heading.weight);
       doc.setFontSize(fonts.heading.size);
-      doc.setTextColor(...colors.text);
+      doc.setTextColor(255, 255, 255); // White text for contrast
       
       currentX = margins.left;
+      const headerHeight = 10; // Match main header height
       columns.forEach((col) => {
         const colWidth = (col.width || 20) * scale;
+        // Draw blue background
+        doc.setFillColor(...colors.primary);
         doc.rect(currentX, currentY, colWidth, headerHeight, 'F');
+        // Draw border
         doc.setDrawColor(...colors.borderColor);
         doc.rect(currentX, currentY, colWidth, headerHeight);
-        doc.text(col.label, currentX + 2, currentY + 6);
+        // Set text color and draw text
+        doc.setTextColor(255, 255, 255); // Ensure white text
+        doc.setFont(undefined, fonts.heading.weight);
+        doc.text(col.label, currentX + 2, currentY + headerHeight - 3);
         currentX += colWidth;
       });
       

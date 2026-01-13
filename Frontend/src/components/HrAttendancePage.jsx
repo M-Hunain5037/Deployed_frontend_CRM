@@ -654,7 +654,6 @@ const MonthlyOverview = ({
   const [chartType, setChartType] = useState('line');
 
   const filterOptions = [
-    { value: 'attendance', label: 'Attendance', icon: Users },
     { value: 'leaves', label: 'Leaves', icon: Calendar },
     { value: 'overtime', label: 'Overtime', icon: Clock },
     { value: 'late', label: 'Late Arrivals', icon: AlertCircle },
@@ -665,7 +664,6 @@ const MonthlyOverview = ({
     { value: 'today', label: 'Today' },
     { value: 'weekly', label: 'Weekly' },
     { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
     { value: 'custom', label: 'Custom Range' }
   ];
 
@@ -678,8 +676,6 @@ const MonthlyOverview = ({
         return getWeeklyData();
       case 'monthly':
         return getMonthlyComparisonData();
-      case 'quarterly':
-        return getQuarterlyData();
       case 'custom':
         return getCustomRangeData();
       default:
@@ -1278,8 +1274,6 @@ const MonthlyOverview = ({
         return `Weekly ${baseTitle} Trend`;
       case 'monthly':
         return `Monthly ${baseTitle} Comparison`;
-      case 'quarterly':
-        return `Quarterly ${baseTitle} Overview`;
       case 'custom':
         return `Custom Range ${baseTitle} Analysis`;
       default:
@@ -1468,7 +1462,7 @@ const MonthlyOverview = ({
             {timeRangeOptions.map(option => {
               const IconComponent = option.value === 'weekly' ? Calendar : 
                                   option.value === 'monthly' ? BarChart3 : 
-                                  option.value === 'quarterly' ? Users : Filter;
+                                  option.value === 'custom' ? Filter : Calendar;
               return (
                 <button
                   key={option.value}

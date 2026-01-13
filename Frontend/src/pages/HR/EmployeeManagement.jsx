@@ -463,17 +463,6 @@ const EmployeeManagement = () => {
                                 <Eye className="w-5 h-5" />
                               </button>
                               <button
-                                onClick={() => {
-                                  setSelectedEmployee(employee);
-                                  handleEditEmployee(employee);
-                                  setShowDetailsModal(true);
-                                }}
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all font-medium"
-                                title="Edit"
-                              >
-                                <Edit className="w-5 h-5" />
-                              </button>
-                              <button
                                 onClick={() => handleDeleteEmployee(employee.id)}
                                 className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all font-medium"
                                 title="Delete"
@@ -619,6 +608,7 @@ const EmployeeManagement = () => {
                   isEditMode={isEditMode}
                   editValue={editFormData?.email}
                   onChange={(val) => handleEditFormChange('email', val)}
+                  readOnly={true}
                 />
                 <CompactField 
                   icon={Phone} 
@@ -711,56 +701,7 @@ const EmployeeManagement = () => {
                 />
               </div>
 
-              {/* Onboarding Progress Section */}
-              {selectedEmployee.onboardingProgress && (
-                <div className="p-4 sm:p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <h4 className="text-sm sm:text-base font-bold text-indigo-900 flex items-center gap-2">
-                      <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs">✓</span>
-                      </div>
-                      Onboarding Progress
-                    </h4>
-                    <div className="text-right">
-                      <div className="inline-block px-3 py-1 bg-indigo-500 text-white rounded-full font-bold text-sm">
-                        Step 1
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-indigo-800">Overall Completion</span>
-                      <span className="text-sm font-bold text-indigo-600">{selectedEmployee.onboardingProgress.overall_completion_percentage || 0}%</span>
-                    </div>
-                    <div className="w-full bg-indigo-100 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300"
-                        style={{ width: `${selectedEmployee.onboardingProgress.overall_completion_percentage || 0}%` }}
-                      ></div>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 text-xs">
-                      <div className={`p-2 rounded-lg text-center font-medium ${selectedEmployee.onboardingProgress.step_1_basic_info ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        ✓ Basic Info
-                      </div>
-                      <div className={`p-2 rounded-lg text-center font-medium ${selectedEmployee.onboardingProgress.step_2_security_setup ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        ✓ Security
-                      </div>
-                      <div className={`p-2 rounded-lg text-center font-medium ${selectedEmployee.onboardingProgress.step_3_job_details ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        ✓ Job Details
-                      </div>
-                      <div className={`p-2 rounded-lg text-center font-medium ${selectedEmployee.onboardingProgress.step_4_allowances ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        ✓ Allowances
-                      </div>
-                      <div className={`p-2 rounded-lg text-center font-medium ${selectedEmployee.onboardingProgress.step_5_additional_info ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        ✓ Additional
-                      </div>
-                      <div className={`p-2 rounded-lg text-center font-medium ${selectedEmployee.onboardingProgress.step_6_review_confirm ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        ✓ Review
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               {/* Resources Section - if any resources allocated */}
               {(selectedEmployee.laptop || selectedEmployee.charger || selectedEmployee.mouse || selectedEmployee.keyboard || selectedEmployee.monitor || selectedEmployee.mobile || (selectedEmployee.dynamicResources && selectedEmployee.dynamicResources.length > 0)) && (
@@ -1061,7 +1002,8 @@ const CompactField = ({
   isEditMode, 
   editValue, 
   onChange, 
-  type = 'text' 
+  type = 'text',
+  readOnly = false
 }) => {
   return (
     <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100 hover:border-blue-300 transition">
@@ -1069,7 +1011,7 @@ const CompactField = ({
         {Icon && <Icon className="w-3 h-3" />}
         {label}
       </p>
-      {isEditMode ? (
+      {isEditMode && !readOnly ? (
         <input
           type={type}
           value={editValue || ''}

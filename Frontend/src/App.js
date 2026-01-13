@@ -24,6 +24,7 @@ import AdminSalesManagement from './pages/SuperAdmin/AdminSalesManagement';
 // HR Pages
 import HRDashboard from './pages/HR/HRDashboard';
 import HrAttendance from './pages/HR/HrAttendance';
+import HRMyAttendance from './pages/HR/HRMyAttendance';
 import EmployeeManagement from './pages/HR/EmployeeManagement';
 import EmployeeOnboarding from './pages/HR/EmployeeOnboarding';
 import ApplicationsMemos from './pages/HR/ApplicationsMemos';
@@ -130,6 +131,14 @@ function AppContent() {
               element={
                 <ProtectedRoute requiredRole="hr">
                   <HrAttendance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/my-attendance"
+              element={
+                <ProtectedRoute requiredRole="hr">
+                  <HRMyAttendance />
                 </ProtectedRoute>
               }
             />

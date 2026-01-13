@@ -105,24 +105,9 @@ const LoginPage = () => {
           id: data.data.id,
           email: data.data.email,
           name: data.data.name,
-          employeeId: data.data.employee_id,
+          employeeId: data.data.employeeId,
           department: data.data.department
         }, userRole, data.data.token);
-
-        // Store user data in localStorage BEFORE anything else
-        const userData = {
-          userId: data.data.userId || data.data.id,  // Use userId from backend
-          email: data.data.email,
-          name: data.data.name,
-          role: userRole,
-          employeeId: data.data.employeeId || data.data.employee_id,  // Use employeeId from backend
-          department: data.data.department
-        };
-        
-        console.log('💾 Storing user data:', userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('authToken', data.data.token);  // Backup token key
 
         // Collect additional device info in background (non-blocking)
         // This avoids delays from geolocation permissions or external API calls
