@@ -97,25 +97,29 @@ const parsePakistanTime = (dateStr, timeStr) => {
   if (!timeStr) return null;
   
   try {
-    // Parse the time string HH:MM:SS
+    // The database stores times as HH:MM:SS in Pakistan timezone (UTC+5)
+    // Example: check_in_time: "00:54:22" means 00:54:22 Pakistan time
+    // 
+    // Simply create a Date object using the time string as-is
+    // WITHOUT any timezone conversions, since the times are already in Pakistan timezone
+    
     const [hours, minutes, seconds] = timeStr.split(':').map(Number);
     
-    // Create a date in local browser time
-    const date = new Date(`${dateStr}T${timeStr}`);
+    // Create a date using the Pakistan time values directly
+    // This represents the moment in Pakistan timezone
+    const date = new Date();
+    date.setHours(hours);
+    date.setMinutes(minutes);
+    date.setSeconds(seconds);
+    date.setMilliseconds(0);
     
-    // The API returns times in Pakistan timezone (UTC+5)
-    // JavaScript's Date.parse assumes UTC for ISO strings
-    // But the server times are already in PKT, so we need to account for the difference
+    // Set the date component from dateStr
+    const [year, month, day] = dateStr.split('-').map(Number);
+    date.setFullYear(year);
+    date.setMonth(month - 1);
+    date.setDate(day);
     
-    // Get browser's timezone offset
-    const browserOffsetMinutes = date.getTimezoneOffset(); // Minutes behind UTC (negative if ahead)
-    const pakistanOffsetMinutes = -5 * 60; // Pakistan is UTC+5, so offset is -300 minutes
-    
-    // Adjust for timezone difference
-    const offsetDifference = browserOffsetMinutes - pakistanOffsetMinutes;
-    const adjustedDate = new Date(date.getTime() + (offsetDifference * 60 * 1000));
-    
-    return adjustedDate;
+    return date;
   } catch (error) {
     console.error('Error parsing Pakistan time:', error);
     return new Date(`${dateStr}T${timeStr}`);
@@ -601,9 +605,11 @@ export const useAttendance = () => {
           : null;
         
         console.log('📊 Fetched Attendance Data:');
+        console.log('   Raw API response:', attendanceRecord);
         console.log('   Date:', attendanceDateStr);
-        console.log('   Check-in time string:', attendanceRecord.check_in_time);
-        console.log('   Check-in Date object:', checkInTime);
+        console.log('   Check-in time string (raw from API):', attendanceRecord.check_in_time);
+        console.log('   Check-in Date object (after parsing):', checkInTime);
+        console.log('   Check-in formatted:', checkInTime ? checkInTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : 'N/A');
         console.log('   Check-out time string:', attendanceRecord.check_out_time);
         console.log('   Is active session:', !attendanceRecord.check_out_time);
         

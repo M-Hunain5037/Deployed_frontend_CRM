@@ -97,8 +97,8 @@ const EmployeeManagement = () => {
 
   const handleExportPDF = () => {
     try {
-      // Use filtered employees if filters are applied, otherwise use all
-      const dataToExport = filteredEmployees.length > 0 ? filteredEmployees : employees;
+      // Always export all employees
+      const dataToExport = employees;
       
       if (dataToExport.length === 0) {
         alert('No employees to export');
@@ -106,13 +106,17 @@ const EmployeeManagement = () => {
       }
 
       const columns = [
-        { key: 'id', label: 'Employee ID', width: 15 },
-        { key: 'name', label: 'Name', width: 25 },
-        { key: 'email', label: 'Email', width: 30 },
-        { key: 'phone', label: 'Phone', width: 20 },
-        { key: 'department', label: 'Department', width: 20 },
-        { key: 'position', label: 'Position', width: 20 },
-        { key: 'status', label: 'Status', width: 15 }
+        { key: 'employee_id', label: 'Office ID', width: 12 },
+        { key: 'name', label: 'Name', width: 20 },
+        { key: 'email', label: 'Email', width: 22 },
+        { key: 'phone', label: 'Phone', width: 15 },
+        { key: 'department', label: 'Department', width: 16 },
+        { key: 'position', label: 'Position', width: 16 },
+        { key: 'designation', label: 'Designation', width: 16 },
+        { key: 'cnic', label: 'CNIC', width: 16 },
+        { key: 'bank_account', label: 'Bank Account', width: 18 },
+        { key: 'join_date', label: 'Join Date', width: 14 },
+        { key: 'status', label: 'Status', width: 12 }
       ];
 
       const filename = `Employee_Report_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -126,8 +130,8 @@ const EmployeeManagement = () => {
 
   const handleExportCSV = () => {
     try {
-      // Use filtered employees if filters are applied, otherwise use all
-      const dataToExport = filteredEmployees.length > 0 ? filteredEmployees : employees;
+      // Always export all employees
+      const dataToExport = employees;
       
       if (dataToExport.length === 0) {
         alert('No employees to export');
@@ -135,12 +139,18 @@ const EmployeeManagement = () => {
       }
 
       const columns = [
-        { key: 'id', label: 'Employee ID' },
+        { key: 'employee_id', label: 'Office ID' },
         { key: 'name', label: 'Name' },
         { key: 'email', label: 'Email' },
         { key: 'phone', label: 'Phone' },
         { key: 'department', label: 'Department' },
         { key: 'position', label: 'Position' },
+        { key: 'designation', label: 'Designation' },
+        { key: 'cnic', label: 'CNIC' },
+        { key: 'bank_account', label: 'Bank Account' },
+        { key: 'join_date', label: 'Join Date' },
+        { key: 'address', label: 'Address' },
+        { key: 'emergency_contact', label: 'Emergency Contact' },
         { key: 'status', label: 'Status' }
       ];
 
@@ -390,7 +400,7 @@ const EmployeeManagement = () => {
                       <th className="text-left py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Employee</th>
                       <th className="text-left py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
                       <th className="text-left py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Department</th>
-                      <th className="text-left py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Position</th>
+                      <th className="text-left py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Sub-Department</th>
                       <th className="text-left py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Join Date</th>
                       <th className="text-left py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                       <th className="text-center py-5 px-7 text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
@@ -441,7 +451,7 @@ const EmployeeManagement = () => {
                             </span>
                           </td>
                           <td className="py-5 px-7">
-                            <p className="text-gray-900 font-medium text-sm">{employee.position || 'N/A'}</p>
+                            <p className="text-gray-900 font-medium text-sm">{employee.sub_department || 'N/A'}</p>
                           </td>
                           <td className="py-5 px-7">
                             <p className="text-gray-700 text-sm font-medium">
@@ -574,7 +584,7 @@ const EmployeeManagement = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-2xl sm:text-3xl font-bold text-slate-800">{selectedEmployee.name}</h3>
-                  <p className="text-sm sm:text-lg text-slate-600 mt-1">{selectedEmployee.position || 'N/A'}</p>
+                    <p className="text-sm sm:text-lg text-slate-600 mt-1">{selectedEmployee.sub_department || ''}</p>
                   <div className="flex flex-wrap gap-2 mt-3">
                     <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs sm:text-sm font-semibold">
                       {isEditMode ? (
@@ -637,68 +647,84 @@ const EmployeeManagement = () => {
                   editValue={editFormData?.department}
                   onChange={(val) => handleEditFormChange('department', val)}
                 />
-                <CompactField 
-                  label="Position" 
-                  value={selectedEmployee.position}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.position}
-                  onChange={(val) => handleEditFormChange('position', val)}
-                />
-                <CompactField 
-                  label="Designation" 
-                  value={selectedEmployee.designation}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.designation}
-                  onChange={(val) => handleEditFormChange('designation', val)}
-                />
+                {selectedEmployee.sub_department && (
+                  <CompactField 
+                    label="Sub-Department" 
+                    value={selectedEmployee.sub_department}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.sub_department}
+                    onChange={(val) => handleEditFormChange('sub_department', val)}
+                  />
+                )}
+                {selectedEmployee.designation && (
+                  <CompactField 
+                    label="Designation" 
+                    value={selectedEmployee.designation}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.designation}
+                    onChange={(val) => handleEditFormChange('designation', val)}
+                  />
+                )}
 
                 {/* Personal Information */}
-                <CompactField 
-                  label="CNIC" 
-                  value={selectedEmployee.cnic}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.cnic}
-                  onChange={(val) => handleEditFormChange('cnic', val)}
-                />
-                <CompactField 
-                  label="Emergency Contact" 
-                  value={selectedEmployee.emergency_contact}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.emergency_contact}
-                  onChange={(val) => handleEditFormChange('emergency_contact', val)}
-                />
-                <CompactField 
-                  icon={MapPin} 
-                  label="Address" 
-                  value={selectedEmployee.address}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.address}
-                  onChange={(val) => handleEditFormChange('address', val)}
-                />
+                {selectedEmployee.cnic && (
+                  <CompactField 
+                    label="CNIC" 
+                    value={selectedEmployee.cnic}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.cnic}
+                    onChange={(val) => handleEditFormChange('cnic', val)}
+                  />
+                )}
+                {selectedEmployee.emergency_contact && (
+                  <CompactField 
+                    label="Emergency Contact" 
+                    value={selectedEmployee.emergency_contact}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.emergency_contact}
+                    onChange={(val) => handleEditFormChange('emergency_contact', val)}
+                  />
+                )}
+                {selectedEmployee.address && (
+                  <CompactField 
+                    icon={MapPin} 
+                    label="Address" 
+                    value={selectedEmployee.address}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.address}
+                    onChange={(val) => handleEditFormChange('address', val)}
+                  />
+                )}
 
                 {/* Financial Information */}
-                <CompactField 
-                  label="Bank Account" 
-                  value={selectedEmployee.bank_account}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.bank_account}
-                  onChange={(val) => handleEditFormChange('bank_account', val)}
-                />
-                <CompactField 
-                  label="Tax ID" 
-                  value={selectedEmployee.tax_id}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.tax_id}
-                  onChange={(val) => handleEditFormChange('tax_id', val)}
-                />
-                <CompactField 
-                  label="Base Salary" 
-                  value={selectedEmployee.base_salary ? `PKR ${Number(selectedEmployee.base_salary).toLocaleString()}` : 'N/A'}
-                  isEditMode={isEditMode}
-                  editValue={editFormData?.base_salary || ''}
-                  onChange={(val) => handleEditFormChange('base_salary', val)}
-                  type="number"
-                />
+                {selectedEmployee.bank_account && (
+                  <CompactField 
+                    label="Bank Account" 
+                    value={selectedEmployee.bank_account}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.bank_account}
+                    onChange={(val) => handleEditFormChange('bank_account', val)}
+                  />
+                )}
+                {selectedEmployee.tax_id && (
+                  <CompactField 
+                    label="Tax ID" 
+                    value={selectedEmployee.tax_id}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.tax_id}
+                    onChange={(val) => handleEditFormChange('tax_id', val)}
+                  />
+                )}
+                {selectedEmployee.base_salary && (
+                  <CompactField 
+                    label="Base Salary" 
+                    value={`PKR ${Number(selectedEmployee.base_salary).toLocaleString()}`}
+                    isEditMode={isEditMode}
+                    editValue={editFormData?.base_salary || ''}
+                    onChange={(val) => handleEditFormChange('base_salary', val)}
+                    type="number"
+                  />
+                )}
               </div>
 
 

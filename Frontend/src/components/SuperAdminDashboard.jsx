@@ -993,7 +993,7 @@ function EmployeesContent({
               </th>
               <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">Employee</th>
               <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">Department</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">Position</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">Sub-Department</th>
               <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">Status</th>
               <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">Join Date</th>
               <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">Actions</th>
@@ -1026,7 +1026,7 @@ function EmployeesContent({
                   </div>
                 </td>
                 <td className="py-3 px-4 text-sm text-slate-700">{employee.department}</td>
-                <td className="py-3 px-4 text-sm text-slate-700">{employee.position}</td>
+                <td className="py-3 px-4 text-sm text-slate-700">{employee.sub_department || ''}</td>
                 <td className="py-3 px-4">
                   <button 
                     onClick={() => onToggleStatus(employee.id)}

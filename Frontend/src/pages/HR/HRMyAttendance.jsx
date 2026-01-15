@@ -343,14 +343,21 @@ const HRMyAttendance = () => {
   };
 
   const getStatusColor = () => {
-    if (!isCheckedIn) return 'text-gray-500';
+    // Check if there's a check-in time
+    if (!attendanceData?.check_in_time) return 'text-gray-500';
+    // If checked out, return blue
+    if (attendanceData?.check_out_time) return 'text-blue-500';
+    // If checked in, return status color (Present/Late/etc)
     return attendanceData?.status === 'Present' ? 'text-green-500' : 
            attendanceData?.status === 'Late' ? 'text-orange-500' : 'text-blue-500';
   };
 
   const getStatusText = () => {
-    if (!isCheckedIn && !attendanceData?.check_out_time) return 'Not Checked In';
+    // Check if there's a check-in time
+    if (!attendanceData?.check_in_time) return 'Not Checked In';
+    // If there's a check-out time, show checked out
     if (attendanceData?.check_out_time) return 'Checked Out';
+    // If checked in with no check-out, show status (Present/Late/etc)
     return attendanceData?.status || 'Present';
   };
 
@@ -448,7 +455,7 @@ const HRMyAttendance = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                    isCheckedIn ? 'bg-green-100' : attendanceData?.check_out_time ? 'bg-blue-100' : 'bg-gray-100'
+                    attendanceData?.check_in_time && !attendanceData?.check_out_time ? 'bg-green-100' : attendanceData?.check_out_time ? 'bg-blue-100' : 'bg-gray-100'
                   }`}>
                     <CheckCircle className={`w-6 h-6 ${getStatusColor()}`} />
                   </div>
@@ -558,9 +565,11 @@ const HRMyAttendance = () => {
                       <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
                         <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
                         <p className="text-green-700 font-semibold">You are checked in</p>
-                        <p className="text-sm text-green-600">
-                          Checked in at {attendanceData?.check_in_time}
-                        </p>
+                        {attendanceData?.check_in_time && (
+                          <p className="text-sm text-green-600">
+                            Checked in at {attendanceData.check_in_time}
+                          </p>
+                        )}
                       </div>
                     ) : attendanceData?.check_out_time ? (
                       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
@@ -580,9 +589,9 @@ const HRMyAttendance = () => {
                     <div className="flex gap-4">
                       <button
                         onClick={handleCheckIn}
-                        disabled={isCheckedIn || attendanceData?.check_in_time || attendanceData?.check_out_time}
+                        disabled={attendanceData?.check_in_time || attendanceData?.check_out_time}
                         className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
-                          isCheckedIn || attendanceData?.check_in_time || attendanceData?.check_out_time
+                          attendanceData?.check_in_time || attendanceData?.check_out_time
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-500/25'
                         }`}
@@ -595,9 +604,9 @@ const HRMyAttendance = () => {
                         onClick={handleCheckOut}
                         disabled={!attendanceData?.check_in_time || !!attendanceData?.check_out_time}
                         className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
-                          !attendanceData?.check_in_time || attendanceData?.check_out_time
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/25'
+                          attendanceData?.check_in_time && !attendanceData?.check_out_time
+                            ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-blue-500/25'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                       >
                         <LogOut className="w-5 h-5 inline mr-2" />

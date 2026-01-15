@@ -38,7 +38,7 @@ const EmployeeProfile = () => {
             id: emp.id,
             name: emp.name || 'Unknown',
             username: emp.employee_id || emp.name?.toLowerCase().replace(/\s+/g, '.') || 'unknown',
-            role: emp.position || 'Employee',
+            role: emp.sub_department || emp.position || 'Employee',
             email: emp.email || '',
             phone: emp.phone || '',
             status: emp.status === 'Active' ? 'active' : 'inactive',
@@ -346,12 +346,69 @@ const EmployeeProfile = () => {
     }
   };
 
-  const handleEditEmployee = (employeeData) => {
-    setEmployees(prev => prev.map(emp => 
-      emp.id === employeeData.id ? { ...emp, ...employeeData } : emp
-    ));
-    setShowEditModal(false);
-    setEditingEmployee(null);
+  const handleEditEmployee = async (employeeData) => {
+    try {
+      // Prepare the data to send to backend
+      const updatePayload = {
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        cnic: employeeData.cnic,
+        department: employeeData.department,
+        designation: employeeData.role,
+        address: employeeData.location,
+        emergency_contact: employeeData.phone,
+        bank_account: employeeData.bankAccount,
+        tax_id: employeeData.taxId,
+        status: employeeData.status === 'active' ? 'Active' : 'Inactive',
+        // Resources
+        laptop: employeeData.resources?.laptop?.allocated || false,
+        laptop_serial: employeeData.resources?.laptop?.serialNumber || null,
+        charger: employeeData.resources?.charger?.allocated || false,
+        charger_serial: employeeData.resources?.charger?.serialNumber || null,
+        mouse: employeeData.resources?.mouse?.allocated || false,
+        mouse_serial: employeeData.resources?.mouse?.serialNumber || null,
+        keyboard: employeeData.resources?.keyboard?.allocated || false,
+        keyboard_serial: employeeData.resources?.keyboard?.serialNumber || null,
+        monitor: employeeData.resources?.monitor?.allocated || false,
+        monitor_serial: employeeData.resources?.monitor?.serialNumber || null,
+        mobile: employeeData.resources?.mobile?.allocated || false,
+        mobile_serial: employeeData.resources?.mobile?.serialNumber || null,
+        resources_note: employeeData.resources?.resourceNotes || null,
+        // Allowances
+        allowances: Object.entries(employeeData.allowances || {}).map(([name, amount]) => ({
+          name,
+          amount: parseFloat(amount) || 0
+        }))
+      };
+
+      console.log('📤 Sending update payload:', updatePayload);
+
+      const response = await fetch(endpoints.employees.update(employeeData.id), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatePayload)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update local state
+        setEmployees(prev => prev.map(emp => 
+          emp.id === employeeData.id ? { ...emp, ...employeeData } : emp
+        ));
+        setShowEditModal(false);
+        setEditingEmployee(null);
+        alert('✅ Employee updated successfully!');
+      } else {
+        alert('❌ Error updating employee: ' + (result.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('❌ Error updating employee:', error);
+      alert('❌ Failed to update employee: ' + error.message);
+    }
   };
 
   const handleDeleteEmployee = (id) => {
@@ -460,8 +517,48 @@ const EmployeeProfile = () => {
   };
 
   // View Profile Function
-  const handleViewProfile = (employee) => {
-    setSelectedProfile(employee);
+  const handleViewProfile = async (employee) => {
+    try {
+      // Fetch full employee details including resources and allowances
+      const response = await fetch(endpoints.employees.getById(employee.id));
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        // Merge fetched data with local employee data
+        const fullEmployee = {
+          ...employee,
+          ...data.data,
+          // Ensure compatibility with existing fields
+          name: data.data.name || employee.name,
+          email: data.data.email || employee.email,
+          phone: data.data.phone || employee.phone,
+          department: data.data.department || employee.department,
+          designation: data.data.designation || data.data.sub_department || data.data.position || employee.role,
+          employee_id: data.data.employee_id || employee.id,
+          allowances: data.data.allowances || employee.allowances || [],
+          laptop: data.data.laptop || false,
+          charger: data.data.charger || false,
+          mouse: data.data.mouse || false,
+          keyboard: data.data.keyboard || false,
+          monitor: data.data.monitor || false,
+          mobile: data.data.mobile || false,
+          laptop_serial: data.data.laptop_serial || '',
+          charger_serial: data.data.charger_serial || '',
+          mouse_serial: data.data.mouse_serial || '',
+          keyboard_serial: data.data.keyboard_serial || '',
+          monitor_serial: data.data.monitor_serial || '',
+          mobile_serial: data.data.mobile_serial || '',
+          resources_note: data.data.resources_note || ''
+        };
+        setSelectedProfile(fullEmployee);
+      } else {
+        setSelectedProfile(employee);
+      }
+    } catch (error) {
+      console.error('Error fetching full employee details:', error);
+      setSelectedProfile(employee);
+    }
+    
     setShowProfileModal(true);
   };
 
@@ -1336,16 +1433,53 @@ const AddEmployeeModal = ({ onClose, onSave }) => {
 };
 
 const EditEmployeeModal = ({ employee, onClose, onSave }) => {
+  // Transform employee data for form compatibility
+  const transformEmployeeData = (emp) => {
+    // Handle allowances - convert from API format (array) to form format (object) or keep as is
+    let formattedAllowances = {};
+    if (Array.isArray(emp.allowances)) {
+      emp.allowances.forEach(allowance => {
+        formattedAllowances[allowance.name?.toLowerCase().replace(/\s+/g, '_') || 'allowance'] = allowance.amount || 0;
+      });
+    } else if (typeof emp.allowances === 'object') {
+      formattedAllowances = emp.allowances;
+    } else {
+      formattedAllowances = { medical: 0, housing: 0, transport: 0 };
+    }
+
+    // Handle resources - convert from API format to form format
+    let formattedResources = {
+      laptop: { allocated: emp.laptop || false, serialNumber: emp.laptop_serial || '' },
+      charger: { allocated: emp.charger || false, serialNumber: emp.charger_serial || '' },
+      mouse: { allocated: emp.mouse || false, serialNumber: emp.mouse_serial || '' },
+      keyboard: { allocated: emp.keyboard || false, serialNumber: emp.keyboard_serial || '' },
+      monitor: { allocated: emp.monitor || false, serialNumber: emp.monitor_serial || '' },
+      mobile: { allocated: emp.mobile || false, serialNumber: emp.mobile_serial || '' },
+      resourceNotes: emp.resources_note || ''
+    };
+
+    return {
+      ...emp,
+      firstName: emp.name?.split(' ')[0] || 'First',
+      lastName: emp.name?.split(' ').slice(1).join(' ') || 'Last',
+      username: emp.username || emp.employee_id || emp.email?.split('@')[0] || 'username',
+      password: '',
+      confirmPassword: '',
+      company: emp.company || 'Company',
+      employeeId: emp.employee_id || emp.id || `EMP-${String(emp.id).padStart(4, '0')}`,
+      about: emp.about || `Experienced ${emp.designation || emp.role} with experience in the ${emp.department} department.`,
+      role: emp.designation || emp.role || 'Employee',
+      joiningDate: emp.join_date || emp.joiningDate || new Date().toISOString().split('T')[0],
+      skills: emp.skills || [],
+      resources: formattedResources,
+      allowances: formattedAllowances
+    };
+  };
+
+  const initialData = transformEmployeeData(employee);
+
   const [formData, setFormData] = useState({
-    ...employee,
-    firstName: employee.name.split(' ')[0],
-    lastName: employee.name.split(' ').slice(1).join(' '),
-    username: employee.username || employee.email.split('@')[0],
-    password: '',
-    confirmPassword: '',
-    company: 'Abac Company',
-    employeeId: `EMP-${String(employee.id).padStart(4, '0')}`,
-    about: `Experienced ${employee.role} with ${employee.experience} in the ${employee.department} department.`,
+    ...initialData,
     permissions: {
       holidays: { enabled: true, read: true, write: false, create: false, delete: true, import: false, export: false },
       leaves: { enabled: false, read: false, write: false, create: false, delete: false, import: false, export: false },
@@ -1361,6 +1495,10 @@ const EditEmployeeModal = ({ employee, onClose, onSave }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [newAllowanceName, setNewAllowanceName] = useState('');
+  const [newAllowanceAmount, setNewAllowanceAmount] = useState('');
+  const [newResourceName, setNewResourceName] = useState('');
+  const [newResourceSerial, setNewResourceSerial] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1391,6 +1529,10 @@ const EditEmployeeModal = ({ employee, onClose, onSave }) => {
         revisions: formData.revisions || employee.revisions || 0
       } : {})
     };
+    
+    // Include resources and allowances
+    updatedEmployee.resources = formData.resources;
+    updatedEmployee.allowances = formData.allowances;
     
     // Remove unnecessary fields
     delete updatedEmployee.firstName;
@@ -1902,6 +2044,254 @@ const EditEmployeeModal = ({ employee, onClose, onSave }) => {
     </>
   );
 
+  const renderResourcesAllowancesTab = () => (
+    <>
+      <div className="modal-body pb-0 px-6 pt-6">
+        {/* Resources Allocated Section */}
+        <div className="mb-8">
+          <h5 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+              <span className="text-yellow-600 text-lg">📦</span>
+            </div>
+            Resources Allocated
+          </h5>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            {Object.entries(formData.resources).map(([key, value]) => {
+              // Skip the resourceNotes field
+              if (key === 'resourceNotes' || typeof value !== 'object' || !value.allocated !== undefined) return null;
+              
+              return (
+                <div key={key} className="border border-gray-200 rounded-xl p-4 relative">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={value.allocated || false}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          resources: {
+                            ...prev.resources,
+                            [key]: { ...value, allocated: e.target.checked }
+                          }
+                        }))}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <label className="text-sm font-medium text-gray-700 capitalize">
+                        {key.replace(/_/g, ' ')}
+                      </label>
+                    </div>
+                    {/* Delete button for custom resources (not default ones) */}
+                    {!['laptop', 'charger', 'mouse', 'keyboard', 'monitor', 'mobile'].includes(key) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedResources = { ...formData.resources };
+                          delete updatedResources[key];
+                          setFormData(prev => ({
+                            ...prev,
+                            resources: updatedResources
+                          }));
+                        }}
+                        className="text-red-600 hover:text-red-800 p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  {(value.allocated || value.serialNumber) && (
+                    <input 
+                      type="text" 
+                      placeholder="Serial #"
+                      value={value.serialNumber || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        resources: {
+                          ...prev.resources,
+                          [key]: { ...value, serialNumber: e.target.value }
+                        }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Resources Note */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Resources Note</label>
+            <textarea 
+              placeholder="Add any notes about resources..."
+              value={formData.resources.resourceNotes}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                resources: {
+                  ...prev.resources,
+                  resourceNotes: e.target.value
+                }
+              }))}
+              rows="3"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Add New Resource */}
+          <div className="mt-6 bg-yellow-50 rounded-xl p-4">
+            <h6 className="text-sm font-semibold text-gray-900 mb-3">Add New Resource</h6>
+            <div className="flex gap-3">
+              <input 
+                type="text"
+                placeholder="Resource name (e.g., Desk, Chair, Headset)"
+                value={newResourceName}
+                onChange={(e) => setNewResourceName(e.target.value)}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              <input 
+                type="text"
+                placeholder="Serial #"
+                value={newResourceSerial}
+                onChange={(e) => setNewResourceSerial(e.target.value)}
+                className="w-40 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newResourceName.trim() && newResourceSerial.trim()) {
+                    setFormData(prev => ({
+                      ...prev,
+                      resources: {
+                        ...prev.resources,
+                        [newResourceName.toLowerCase().replace(/\s+/g, '_')]: {
+                          allocated: true,
+                          serialNumber: newResourceSerial
+                        }
+                      }
+                    }));
+                    setNewResourceName('');
+                    setNewResourceSerial('');
+                  }
+                }}
+                className="px-4 py-3 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition duration-200 flex items-center gap-2 whitespace-nowrap"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Allowances Section */}
+        <div className="mb-6">
+          <h5 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+              <span className="text-green-600 text-lg">💰</span>
+            </div>
+            Allowances
+          </h5>
+          
+          {/* Existing Allowances */}
+          <div className="space-y-3 mb-6">
+            {Object.entries(formData.allowances).map(([key, value]) => (
+              <div key={key} className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
+                    {key} <span className="text-gray-500">PKR</span>
+                  </label>
+                  <input 
+                    type="number"
+                    value={value}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      allowances: {
+                        ...prev.allowances,
+                        [key]: parseFloat(e.target.value) || 0
+                      }
+                    }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={`Enter ${key} allowance`}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updatedAllowances = { ...formData.allowances };
+                    delete updatedAllowances[key];
+                    setFormData(prev => ({
+                      ...prev,
+                      allowances: updatedAllowances
+                    }));
+                  }}
+                  className="px-3 py-3 text-red-600 hover:bg-red-50 rounded-lg transition duration-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add New Allowance */}
+          <div className="bg-blue-50 rounded-xl p-4">
+            <h6 className="text-sm font-semibold text-gray-900 mb-3">Add New Allowance</h6>
+            <div className="flex gap-3">
+              <input 
+                type="text"
+                placeholder="Allowance name (e.g., Housing, Transport)"
+                value={newAllowanceName}
+                onChange={(e) => setNewAllowanceName(e.target.value)}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              <input 
+                type="number"
+                placeholder="Amount (PKR)"
+                value={newAllowanceAmount}
+                onChange={(e) => setNewAllowanceAmount(e.target.value)}
+                className="w-32 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newAllowanceName.trim()) {
+                    setFormData(prev => ({
+                      ...prev,
+                      allowances: {
+                        ...prev.allowances,
+                        [newAllowanceName.toLowerCase().replace(/\s+/g, '_')]: parseFloat(newAllowanceAmount) || 0
+                      }
+                    }));
+                    setNewAllowanceName('');
+                    setNewAllowanceAmount('');
+                  }
+                }}
+                className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition duration-200 flex items-center gap-2 whitespace-nowrap"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="modal-footer p-6 border-t border-gray-200">
+        <button 
+          type="button"
+          onClick={onClose}
+          className="px-6 py-3 text-sm text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition duration-200 border border-gray-300 mr-3"
+        >
+          Cancel
+        </button>
+        <button 
+          type="button"
+          onClick={handleSubmit}
+          className="px-6 py-3 text-sm text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition duration-200"
+        >
+          Save
+        </button>
+      </div>
+    </>
+  );
+
   const renderPermissionsTab = () => (
     <>
       <div className="modal-body pb-0 px-6 pt-6">
@@ -2069,6 +2459,15 @@ const EditEmployeeModal = ({ employee, onClose, onSave }) => {
                   Basic Information
                 </button>
               </li>
+              <li className="mr-2" role="presentation">
+                <button
+                  className={`px-4 py-3 text-sm font-medium rounded-t-lg ${activeTab === 'resources' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                  onClick={() => setActiveTab('resources')}
+                  type="button"
+                >
+                  Resources & Allowances
+                </button>
+              </li>
               <li role="presentation">
                 <button
                   className={`px-4 py-3 text-sm font-medium rounded-t-lg ${activeTab === 'permissions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
@@ -2082,7 +2481,7 @@ const EditEmployeeModal = ({ employee, onClose, onSave }) => {
           </div>
           
           <div className="tab-content">
-            {activeTab === 'basic' ? renderBasicInfoTab() : renderPermissionsTab()}
+            {activeTab === 'basic' ? renderBasicInfoTab() : activeTab === 'resources' ? renderResourcesAllowancesTab() : renderPermissionsTab()}
           </div>
         </form>
       </div>
